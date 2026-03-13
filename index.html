@@ -94,6 +94,7 @@
                 <button id="penBtn" onclick="setMode('pen')">Points</button>
                 <button id="freeBtn" class="active" onclick="setMode('free')">Free</button>
                 <button id="liqBtn" onclick="setMode('liquify')">Liq</button>
+                <button id="eraseBtn" onclick="setMode('erase')">Erase</button>
             </div>
         </div>
 
@@ -117,6 +118,7 @@
             <button onclick="undo()" style="background: #444;">UNDO</button>
             <button onclick="lockLine()" style="background: #2d7d46;">LOCK</button>
             <button onclick="exportCanvas()" style="background: #d4a017; color: black;">EXPORT</button>
+            <button onclick="exportVector()" style="background: #e67e22; color: black;">VECTOR</button>
             <button onclick="clearCanvas()" style="background: #8e2a2a;">RESET</button>
             <button onclick="saveDrawing()" style="background: #007bff;">☁️ SAVE</button>
             <button onclick="openGallery()" style="background: #6f42c1;">🖼️ GALLERY</button>
@@ -190,6 +192,54 @@
             link.click();
         }
 
+        // --- NEW: VECTOR EXPORT LOGIC ---
+        function exportVector() {
+            const w = canvas.width;
+            const h = canvas.height;
+            let svgStr = [`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="background-color: white;">`];
+
+            lockedLines.forEach(l => {
+                const spline = getSplinePoints(l.pts);
+                let totalLen = 0;
+                for (let i = 0; i < spline.length - 1; i++) totalLen += Math.hypot(spline[i+1].x - spline[i].x, spline[i+1].y - spline[i].y);
+                let traveled = 0;
+                for (let i = 0; i < spline.length - 1; i++) {
+                    const p1 = spline[i], p2 = spline[i+1];
+                    const d = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                    const steps = Math.max(d * 1.5, 1);
+                    for (let j = 0; j < steps; j++) {
+                        const T = (traveled + (j/steps) * d) / (totalLen || 1);
+                        const pressure = p1.p + (p2.p - p1.p) * (j/steps);
+                        const velocity = p1.v + (p2.v - p1.v) * (j/steps);
+                        let wFactor = (T < 0.5) ? l.tS + (l.tM - l.tS) * (T * 2) : l.tM + (l.tE - l.tM) * ((T - 0.5) * 2);
+                        let vMod = Math.max(0.3, 1 - (velocity * 0.05));
+                        let wBrush = l.size * wFactor * (pressure * 1.5) * vMod;
+                        const x = p1.x + (p2.x - p1.x) * (j/steps);
+                        const y = p1.y + (p2.y - p1.y) * (j/steps);
+                        let pseudoRandom = Math.sin(l.seed + T * 100); 
+                        for (let p = 0; p < (1 + l.grit/3); p++) {
+                            const alpha = 0.8 + Math.random()*0.2;
+                            // Eraser strokes paint pure white in SVG to match the white background
+                            const fill = l.isEraser ? `rgba(255,255,255,1)` : `rgba(0,0,0,${alpha})`;
+                            const jX = (Math.random()-0.5) * l.grit + (pseudoRandom * l.jitter);
+                            const cx = x + jX;
+                            const cy = y + (Math.random()-0.5)*l.grit;
+                            const r = (wBrush/2)*(0.8+Math.random()*0.4);
+                            svgStr.push(`<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${r.toFixed(2)}" fill="${fill}" />`);
+                        }
+                    }
+                    traveled += d;
+                }
+            });
+
+            svgStr.push(`</svg>`);
+            const blob = new Blob([svgStr.join('')], {type: "image/svg+xml"});
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "manga-art-vector.svg";
+            link.click();
+        }
+
         function listenForKey(action) {
             listeningAction = action;
             document.querySelectorAll('.key-input').forEach(el => el.classList.remove('listening'));
@@ -242,7 +292,8 @@
 
         function setMode(m) {
             mode = m;
-            ['penBtn', 'freeBtn', 'liqBtn'].forEach(id => {
+            // Added eraseBtn to the toggle loop
+            ['penBtn', 'freeBtn', 'liqBtn', 'eraseBtn'].forEach(id => {
                 const btn = document.getElementById(id);
                 if(btn) btn.className = id.startsWith(m) ? 'active' : '';
             });
@@ -258,7 +309,7 @@
             if (mode === 'pen') {
                 let hit = points.find(p => Math.hypot(p.x - pos.x, p.y - pos.y) < 15/zoom);
                 if (hit) draggedPoint = hit; else points.push({x: pos.x, y: pos.y, p: pressure, v: 1});
-            } else if (mode === 'free') {
+            } else if (mode === 'free' || mode === 'erase') { // Free or Erase Mode
                 points = [{x: pos.x, y: pos.y, p: pressure, v: 1}];
             }
             render();
@@ -277,10 +328,9 @@
             const pressure = document.getElementById('usePressure').checked ? (e.pressure || 0.5) : 0.8;
             if (mode === 'pen' && draggedPoint) {
                 draggedPoint.x = smoothedPos.x; draggedPoint.y = smoothedPos.y;
-            } else if (mode === 'free' && dist > 1) {
+            } else if ((mode === 'free' || mode === 'erase') && dist > 1) { // Free or Erase Mode
                 points.push({x: smoothedPos.x, y: smoothedPos.y, p: pressure, v: velocity});
             } else if (mode === 'liquify') {
-                // FIX: Pass smoothedPos instead of pos to prevent rubber-banding
                 applyLiquify(smoothedPos.x, smoothedPos.y, lastPos.x, lastPos.y);
             }
             lastPos = {x: smoothedPos.x, y: smoothedPos.y}; lastTime = now;
@@ -288,7 +338,7 @@
         };
 
         canvas.onpointerup = () => {
-            if (mode === 'free' && points.length > 2) lockLine();
+            if ((mode === 'free' || mode === 'erase') && points.length > 2) lockLine();
             isDrawing = false; draggedPoint = null;
         };
 
@@ -304,7 +354,8 @@
                 tS: parseInt(document.getElementById('taperS').value)/100,
                 tM: parseInt(document.getElementById('taperM').value)/100,
                 tE: parseInt(document.getElementById('taperE').value)/100,
-                seed: Math.random() * 1000
+                seed: Math.random() * 1000,
+                isEraser: mode === 'erase' // Record if this stroke was an eraser
             });
             points = []; render();
         }
@@ -313,12 +364,23 @@
 
         function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            lockedLines.forEach(l => drawMangaStroke(l.pts, l.size, l.grit, l.tS, l.tM, l.tE, l.jitter, l.seed));
+            
+            // Draw locked lines, applying correct composite mode if it's an eraser line
+            lockedLines.forEach(l => {
+                ctx.globalCompositeOperation = l.isEraser ? 'destination-out' : 'source-over';
+                drawMangaStroke(l.pts, l.size, l.grit, l.tS, l.tM, l.tE, l.jitter, l.seed);
+            });
+            
+            // Draw current active stroke with correct mode
+            ctx.globalCompositeOperation = mode === 'erase' ? 'destination-out' : 'source-over';
             if (points.length >= 2) {
                 drawMangaStroke(points, parseInt(document.getElementById('thickness').value), parseFloat(document.getElementById('grit').value), 
                     parseInt(document.getElementById('taperS').value)/100, parseInt(document.getElementById('taperM').value)/100, 
                     parseInt(document.getElementById('taperE').value)/100, parseFloat(document.getElementById('jitter').value), 88);
             }
+            
+            // Reset composite operation to default
+            ctx.globalCompositeOperation = 'source-over';
         }
 
         function drawMangaStroke(pts, maxSize, grit, tS, tM, tE, jitter, seed) {
@@ -355,7 +417,7 @@
         function getSplinePoints(pts) {
             if (pts.length < 3) return pts;
             let res = [];
-            let step = mode === 'free' ? 0.4 : 0.05;
+            let step = (mode === 'free' || mode === 'erase') ? 0.4 : 0.05;
             for (let i = 0; i < pts.length - 1; i++) {
                 const p0 = pts[i-1] || pts[i], p1 = pts[i], p2 = pts[i+1], p3 = pts[i+2] || p2;
                 for (let t = 0; t < 1; t += step) {
@@ -369,23 +431,21 @@
             return res;
         }
 
-        // FIX: Adjusted math to use a squared power falloff for smooth bending
         function applyLiquify(mx, my, lx, ly) {
             const strength = parseInt(document.getElementById('thickness').value);
-            const radius = Math.max(strength * 2, 20); // Ensure a minimum radius so small brushes don't break
+            const radius = Math.max(strength * 2, 20); 
             const dx = mx - lx; const dy = my - ly;
             lockedLines.forEach(line => {
                 line.pts.forEach(p => {
                     const dist = Math.hypot(p.x - mx, p.y - my);
                     if (dist < radius) {
-                        const power = Math.pow(1 - dist / radius, 2); // Squared falloff prevents spiky lines
+                        const power = Math.pow(1 - dist / radius, 2); 
                         p.x += dx * power; p.y += dy * power;
                     }
                 });
             });
         }
 
-        // --- NEW FIREBASE FEATURES (Gallery & Save) ---
         function saveDrawing() {
             const btn = event.target;
             const originalText = btn.innerText;
@@ -424,22 +484,38 @@
                     return;
                 }
                 
-                // Sort by newest first
                 const sortedKeys = Object.keys(data).sort((a, b) => data[b].timestamp - data[a].timestamp);
                 
                 sortedKeys.forEach(key => {
                     const item = data[key];
+                    
+                    // --- NEW: Layout to include Delete Button side-by-side ---
+                    const rowContainer = document.createElement('div');
+                    rowContainer.style.display = 'flex';
+                    rowContainer.style.gap = '8px';
+                    
                     const btn = document.createElement('button');
                     const date = new Date(item.timestamp).toLocaleString();
                     btn.innerHTML = `📄 Drawing - ${date} <br><span style="font-size: 9px; color: #aaa; font-weight: normal;">Canvas: ${item.canW}x${item.canH} | Strokes: ${item.lines ? item.lines.length : 0}</span>`;
-                    btn.style.display = 'block';
-                    btn.style.width = '100%';
+                    btn.style.flexGrow = '1';
                     btn.style.textAlign = 'left';
                     btn.style.padding = '10px';
                     btn.style.background = '#333';
                     btn.style.border = '1px solid #444';
                     btn.onclick = () => loadDrawing(item);
-                    list.appendChild(btn);
+                    
+                    const delBtn = document.createElement('button');
+                    delBtn.innerHTML = '🗑️';
+                    delBtn.style.background = '#8e2a2a';
+                    delBtn.onclick = () => {
+                        if (confirm("Delete this drawing from the cloud permanently?")) {
+                            database.ref('drawings/' + key).remove().then(() => openGallery());
+                        }
+                    };
+
+                    rowContainer.appendChild(btn);
+                    rowContainer.appendChild(delBtn);
+                    list.appendChild(rowContainer);
                 });
             }).catch(err => {
                 list.innerHTML = '<span style="color: red;">Failed to load gallery.</span>';
@@ -450,16 +526,14 @@
         function loadDrawing(item) {
             if(!confirm("Load this drawing? Your current unsaved work will be lost.")) return;
             
-            // Restore Settings
             document.getElementById('canW').value = item.canW || 1000;
             document.getElementById('canH').value = item.canH || 700;
             if(item.thickness) document.getElementById('thickness').value = item.thickness;
             
-            // Restore Drawing Data
             lockedLines = item.lines || [];
             points = [];
             
-            updateCanvasSize(); // This resets the canvas size and calls render() automatically
+            updateCanvasSize(); 
             closeGallery();
         }
 
