@@ -16,7 +16,6 @@
   firebase.initializeApp(firebaseConfig);
   var database = firebase.database();
 </script>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -69,11 +68,6 @@
         .key-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .key-input { background: #111; border: 1px solid #444; color: #00d4ff; padding: 5px; width: 80px; text-align: center; cursor: pointer; font-family: monospace; }
         .key-input.listening { border-color: #00d4ff; box-shadow: 0 0 10px #00d4ff; }
-        
-        /* Firebase specific styles */
-        .firebase-group { border-left: 1px solid #444; padding-left: 10px; }
-        #canvas-list { display: flex; gap: 5px; }
-        .canvas-slot { background: #1a1a1a; border: 1px solid #333; font-size: 9px; padding: 4px 8px; }
     </style>
 </head>
 <body>
@@ -88,12 +82,10 @@
             </div>
         </div>
 
-        <div class="control-group">Cloud Storage
-            <div class="sub-row" id="canvas-list">
-                <button onclick="saveToFirebase('canvas1')">SAVE 1</button>
-                <button onclick="saveToFirebase('canvas2')">SAVE 2</button>
-                <button onclick="loadFromFirebase('canvas1')" style="background:#555">LOAD 1</button>
-                <button onclick="loadFromFirebase('canvas2')" style="background:#555">LOAD 2</button>
+        <div class="control-group">Input
+            <div class="sub-row">
+                <label><input type="checkbox" id="usePressure" checked> Pressure</label>
+                <input type="range" id="stabilizer" min="1" max="20" value="5">
             </div>
         </div>
 
@@ -102,6 +94,14 @@
                 <button id="penBtn" onclick="setMode('pen')">Points</button>
                 <button id="freeBtn" class="active" onclick="setMode('free')">Free</button>
                 <button id="liqBtn" onclick="setMode('liquify')">Liq</button>
+            </div>
+        </div>
+
+        <div class="control-group">Taper %
+            <div class="sub-row">
+                <input type="number" id="taperS" value="5">
+                <input type="number" id="taperM" value="100">
+                <input type="number" id="taperE" value="5">
             </div>
         </div>
 
@@ -118,7 +118,11 @@
             <button onclick="lockLine()" style="background: #2d7d46;">LOCK</button>
             <button onclick="exportCanvas()" style="background: #d4a017; color: black;">EXPORT</button>
             <button onclick="clearCanvas()" style="background: #8e2a2a;">RESET</button>
+            <button onclick="saveDrawing()" style="background: #007bff;">☁️ SAVE</button>
+            <button onclick="openGallery()" style="background: #6f42c1;">🖼️ GALLERY</button>
         </div>
+        
+        <input type="file" id="imageLoader" accept="image/*" style="width: 110px; font-size: 9px;">
     </div>
 
     <div id="viewport">
@@ -136,7 +140,14 @@
         <div class="key-row"><span>Lock Line</span><div id="bind-lock" class="key-input" onclick="listenForKey('lock')">l</div></div>
         <div class="key-row"><span>Zoom In</span><div id="bind-zoomIn" class="key-input" onclick="listenForKey('zoomIn')">+</div></div>
         <div class="key-row"><span>Zoom Out</span><div id="bind-zoomOut" class="key-input" onclick="listenForKey('zoomOut')">-</div></div>
+        <div style="font-size: 9px; color: #666; margin-top: 10px;">Tap CTRL to Reset View</div>
         <button onclick="toggleSettings()" style="width: 100%; margin-top: 10px;">CLOSE</button>
+    </div>
+
+    <div id="gallery-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; border: 1px solid #444; padding: 20px; border-radius: 12px; z-index: 100; box-shadow: 0 0 100px rgba(0,0,0,0.8); width: 350px; max-height: 80vh; overflow-y: auto;">
+        <h4 style="margin: 0 0 15px 0; color: #00d4ff;">Cloud Gallery</h4>
+        <div id="gallery-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        <button onclick="closeGallery()" style="width: 100%; margin-top: 15px; background: #444;">CLOSE</button>
     </div>
 
     <script>
@@ -158,36 +169,6 @@
             setMode('free');
             window.addEventListener('keydown', handleGlobalKeys);
             resetView();
-        }
-
-        // --- FIREBASE LOGIC ---
-        function saveToFirebase(slotName) {
-            const data = {
-                width: document.getElementById('canW').value,
-                height: document.getElementById('canH').value,
-                penSize: document.getElementById('thickness').value,
-                lines: lockedLines
-            };
-            database.ref('drawings/' + slotName).set(data)
-                .then(() => alert(slotName + " Saved!"))
-                .catch(err => console.error(err));
-        }
-
-        function loadFromFirebase(slotName) {
-            database.ref('drawings/' + slotName).once('value').then((snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    document.getElementById('canW').value = data.width;
-                    document.getElementById('canH').value = data.height;
-                    document.getElementById('thickness').value = data.penSize;
-                    lockedLines = data.lines || [];
-                    updateCanvasSize();
-                    render();
-                    alert(slotName + " Loaded!");
-                } else {
-                    alert("Slot is empty!");
-                }
-            });
         }
 
         function resetView() {
@@ -294,13 +275,13 @@
             const dt = now - lastTime;
             const velocity = Math.min(dist / (dt || 1), 10);
             const pressure = document.getElementById('usePressure').checked ? (e.pressure || 0.5) : 0.8;
-            
             if (mode === 'pen' && draggedPoint) {
                 draggedPoint.x = smoothedPos.x; draggedPoint.y = smoothedPos.y;
             } else if (mode === 'free' && dist > 1) {
                 points.push({x: smoothedPos.x, y: smoothedPos.y, p: pressure, v: velocity});
             } else if (mode === 'liquify') {
-                applyLiquify(pos.x, pos.y, lastPos.x, lastPos.y);
+                // FIX: Pass smoothedPos instead of pos to prevent rubber-banding
+                applyLiquify(smoothedPos.x, smoothedPos.y, lastPos.x, lastPos.y);
             }
             lastPos = {x: smoothedPos.x, y: smoothedPos.y}; lastTime = now;
             render();
@@ -388,21 +369,104 @@
             return res;
         }
 
+        // FIX: Adjusted math to use a squared power falloff for smooth bending
         function applyLiquify(mx, my, lx, ly) {
             const strength = parseInt(document.getElementById('thickness').value);
-            const radius = strength * 2;
+            const radius = Math.max(strength * 2, 20); // Ensure a minimum radius so small brushes don't break
             const dx = mx - lx; const dy = my - ly;
             lockedLines.forEach(line => {
                 line.pts.forEach(p => {
                     const dist = Math.hypot(p.x - mx, p.y - my);
                     if (dist < radius) {
-                        const power = (1 - dist / radius);
+                        const power = Math.pow(1 - dist / radius, 2); // Squared falloff prevents spiky lines
                         p.x += dx * power; p.y += dy * power;
                     }
                 });
             });
-            render(); // CRITICAL FIX: Ensure the canvas redraws during liquify move
         }
+
+        // --- NEW FIREBASE FEATURES (Gallery & Save) ---
+        function saveDrawing() {
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "SAVING...";
+            
+            const drawingData = {
+                canW: document.getElementById('canW').value,
+                canH: document.getElementById('canH').value,
+                thickness: document.getElementById('thickness').value,
+                lines: lockedLines, 
+                timestamp: Date.now()
+            };
+
+            database.ref('drawings').push(drawingData)
+                .then(() => {
+                    btn.innerText = "✅ SAVED";
+                    setTimeout(() => btn.innerText = originalText, 2000);
+                })
+                .catch(err => {
+                    alert("Error saving: " + err);
+                    btn.innerText = originalText;
+                });
+        }
+
+        function openGallery() {
+            const modal = document.getElementById('gallery-modal');
+            const list = document.getElementById('gallery-list');
+            list.innerHTML = '<span style="color: #888;">Loading cloud drawings...</span>';
+            modal.style.display = 'block';
+
+            database.ref('drawings').once('value').then(snapshot => {
+                list.innerHTML = '';
+                const data = snapshot.val();
+                if (!data) {
+                    list.innerHTML = '<span style="color: #888;">No drawings found in the cloud.</span>';
+                    return;
+                }
+                
+                // Sort by newest first
+                const sortedKeys = Object.keys(data).sort((a, b) => data[b].timestamp - data[a].timestamp);
+                
+                sortedKeys.forEach(key => {
+                    const item = data[key];
+                    const btn = document.createElement('button');
+                    const date = new Date(item.timestamp).toLocaleString();
+                    btn.innerHTML = `📄 Drawing - ${date} <br><span style="font-size: 9px; color: #aaa; font-weight: normal;">Canvas: ${item.canW}x${item.canH} | Strokes: ${item.lines ? item.lines.length : 0}</span>`;
+                    btn.style.display = 'block';
+                    btn.style.width = '100%';
+                    btn.style.textAlign = 'left';
+                    btn.style.padding = '10px';
+                    btn.style.background = '#333';
+                    btn.style.border = '1px solid #444';
+                    btn.onclick = () => loadDrawing(item);
+                    list.appendChild(btn);
+                });
+            }).catch(err => {
+                list.innerHTML = '<span style="color: red;">Failed to load gallery.</span>';
+                console.error(err);
+            });
+        }
+
+        function loadDrawing(item) {
+            if(!confirm("Load this drawing? Your current unsaved work will be lost.")) return;
+            
+            // Restore Settings
+            document.getElementById('canW').value = item.canW || 1000;
+            document.getElementById('canH').value = item.canH || 700;
+            if(item.thickness) document.getElementById('thickness').value = item.thickness;
+            
+            // Restore Drawing Data
+            lockedLines = item.lines || [];
+            points = [];
+            
+            updateCanvasSize(); // This resets the canvas size and calls render() automatically
+            closeGallery();
+        }
+
+        function closeGallery() {
+            document.getElementById('gallery-modal').style.display = 'none';
+        }
+
         init();
     </script>
 </body>
