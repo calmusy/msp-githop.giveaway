@@ -1,547 +1,107 @@
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<script>
-  // Firebase configuration
-  var firebaseConfig = {
-    apiKey: "AIzaSyDXxFEYDda2PggxaMb0HOET9qqYQavfMJA",
-    authDomain: "rayen-84266.firebaseapp.com",
-    projectId: "rayen-84266",
-    storageBucket: "rayen-84266.appspot.com",
-    messagingSenderId: "584915009026",
-    appId: "1:584915009026:web:328b90a9e08fdfbd64b11b",
-    measurementId: "G-2E5TD20D82"
-  };
-
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  var database = firebase.database();
-</script>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Manga Pen v4.9 - Precise Infinite</title>
+    <title>Pixel Synth Encoder</title>
     <style>
-        body { font-family: 'Inter', sans-serif; display: flex; flex-direction: column; align-items: center; background: #111; color: #ccc; margin: 0; padding: 10px; overflow: hidden; height: 100vh; }
-        .toolbar { background: #222; padding: 12px; border-radius: 12px; margin-bottom: 10px; display: flex; gap: 15px; flex-wrap: wrap; align-items: center; border: 1px solid #333; max-width: 1400px; z-index: 10; }
-        
-        #viewport { 
-            width: 100%; 
-            flex-grow: 1; 
-            overflow: auto; 
-            background: #0a0a0a; 
-            position: relative; 
-            display: block; 
-        }
-        
-        #infinite-scroller {
-            width: 20000px; 
-            height: 20000px; 
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-        }
-
-        #canvas-container { 
-            position: relative; 
-            background: white; 
-            cursor: crosshair; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5); 
-            touch-action: none; 
-            transition: transform 0.1s ease-out; 
-            transform-origin: center; 
-            flex-shrink: 0; 
-        }
-        
-        canvas { position: absolute; top: 0; left: 0; }
-        .control-group { display: flex; flex-direction: column; gap: 3px; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
-        button { cursor: pointer; padding: 8px 12px; border: none; border-radius: 6px; font-weight: bold; transition: 0.1s; background: #333; color: white; font-size: 11px; }
-        button:hover { background: #444; border: 1px solid #00d4ff; }
-        button.active { background: #00d4ff; color: #000; }
-        input { background: #333; border: 1px solid #444; color: white; padding: 4px; border-radius: 4px; }
-        input[type="number"] { width: 45px; }
-        .sub-row { display: flex; gap: 5px; align-items: center; }
-        label { font-size: 9px; color: #888; }
-
-        #settings-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; border: 1px solid #444; padding: 20px; border-radius: 12px; z-index: 100; box-shadow: 0 0 100px rgba(0,0,0,0.8); width: 300px; }
-        .key-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .key-input { background: #111; border: 1px solid #444; color: #00d4ff; padding: 5px; width: 80px; text-align: center; cursor: pointer; font-family: monospace; }
-        .key-input.listening { border-color: #00d4ff; box-shadow: 0 0 10px #00d4ff; }
+        body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #00ff41; padding: 20px; text-align: center; }
+        .box { border: 1px solid #00ff41; padding: 20px; max-width: 700px; margin: auto; background: #000; box-shadow: 0 0 15px #00ff41; }
+        input, textarea { background: #111; color: #00ff41; border: 1px solid #00ff41; padding: 10px; width: 80%; margin: 10px 0; }
+        button { background: #00ff41; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; margin: 10px; }
+        button:hover { background: #008f11; }
+        img { max-width: 100%; border: 1px solid #333; margin-top: 15px; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <div class="toolbar">
-        <button onclick="toggleSettings()" style="background: #444;">⚙️ KEYS</button>
+<div class="box">
+    <h2>PIXEL SYNTH v2.0</h2>
+    <p>// SECURE DATA FRAGMENTATION //</p>
 
-        <div class="control-group">Canvas
-            <div class="sub-row">
-                <input type="number" id="canW" value="1000"> x <input type="number" id="canH" value="700">
-                <button onclick="updateCanvasSize()">SET</button>
-            </div>
-        </div>
-
-        <div class="control-group">Input
-            <div class="sub-row">
-                <label><input type="checkbox" id="usePressure" checked> Pressure</label>
-                <input type="range" id="stabilizer" min="1" max="20" value="5">
-            </div>
-        </div>
-
-        <div class="control-group">Tool
-            <div class="sub-row">
-                <button id="penBtn" onclick="setMode('pen')">Points</button>
-                <button id="freeBtn" class="active" onclick="setMode('free')">Free</button>
-                <button id="liqBtn" onclick="setMode('liquify')">Liq</button>
-                <button id="eraseBtn" onclick="setMode('erase')">Erase</button>
-            </div>
-        </div>
-
-        <div class="control-group">Taper %
-            <div class="sub-row">
-                <input type="number" id="taperS" value="5">
-                <input type="number" id="taperM" value="100">
-                <input type="number" id="taperE" value="5">
-            </div>
-        </div>
-
-        <div class="control-group">Size / Grit / Jitter
-            <div class="sub-row">
-                <input type="number" id="thickness" value="30" oninput="render()">
-                <input type="range" id="grit" min="0" max="10" step="0.5" value="3" oninput="render()">
-                <input type="range" id="jitter" min="0" max="5" step="0.1" value="1.5" oninput="render()">
-            </div>
-        </div>
-
-        <div class="sub-row">
-            <button onclick="undo()" style="background: #444;">UNDO</button>
-            <button onclick="lockLine()" style="background: #2d7d46;">LOCK</button>
-            <button onclick="exportCanvas()" style="background: #d4a017; color: black;">EXPORT</button>
-            <button onclick="exportVector()" style="background: #e67e22; color: black;">VECTOR</button>
-            <button onclick="clearCanvas()" style="background: #8e2a2a;">RESET</button>
-            <button onclick="saveDrawing()" style="background: #007bff;">☁️ SAVE</button>
-            <button onclick="openGallery()" style="background: #6f42c1;">🖼️ GALLERY</button>
-        </div>
-        
-        <input type="file" id="imageLoader" accept="image/*" style="width: 110px; font-size: 9px;">
+    <div style="border-bottom: 1px dotted #00ff41; padding-bottom: 20px;">
+        <h3>ENCODE MESSAGE</h3>
+        <input type="file" id="inputImg" accept="image/png">
+        <textarea id="msg" placeholder="Enter secret transmission..."></textarea>
+        <button onclick="process(true)">EMBED & GENERATE</button>
     </div>
 
-    <div id="viewport">
-        <div id="infinite-scroller">
-            <div id="canvas-container">
-                <canvas id="refCanvas"></canvas>
-                <canvas id="artCanvas"></canvas>
-            </div>
-        </div>
+    <div style="margin-top: 20px;">
+        <h3>DECODE IMAGE</h3>
+        <input type="file" id="decodeImg" accept="image/png">
+        <button onclick="process(false)">EXTRACT DATA</button>
+        <p>OUTPUT: <span id="output" style="color: white; background: #222;">...</span></p>
     </div>
+</div>
 
-    <div id="settings-modal">
-        <h4 style="margin: 0 0 15px 0; color: #00d4ff;">Keybinds</h4>
-        <div class="key-row"><span>Undo</span><div id="bind-undo" class="key-input" onclick="listenForKey('undo')">z</div></div>
-        <div class="key-row"><span>Lock Line</span><div id="bind-lock" class="key-input" onclick="listenForKey('lock')">l</div></div>
-        <div class="key-row"><span>Zoom In</span><div id="bind-zoomIn" class="key-input" onclick="listenForKey('zoomIn')">+</div></div>
-        <div class="key-row"><span>Zoom Out</span><div id="bind-zoomOut" class="key-input" onclick="listenForKey('zoomOut')">-</div></div>
-        <div style="font-size: 9px; color: #666; margin-top: 10px;">Tap CTRL to Reset View</div>
-        <button onclick="toggleSettings()" style="width: 100%; margin-top: 10px;">CLOSE</button>
-    </div>
+<canvas id="cvs" class="hidden"></canvas>
 
-    <div id="gallery-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; border: 1px solid #444; padding: 20px; border-radius: 12px; z-index: 100; box-shadow: 0 0 100px rgba(0,0,0,0.8); width: 350px; max-height: 80vh; overflow-y: auto;">
-        <h4 style="margin: 0 0 15px 0; color: #00d4ff;">Cloud Gallery</h4>
-        <div id="gallery-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
-        <button onclick="closeGallery()" style="width: 100%; margin-top: 15px; background: #444;">CLOSE</button>
-    </div>
+<script>
+    // A simple seeded random to simulate the "Logic" 
+    function seededRandom(seed) {
+        return function() {
+            seed = (seed * 9301 + 49297) % 233280;
+            return seed / 233280;
+        };
+    }
 
-    <script>
-        const canvas = document.getElementById('artCanvas');
-        const ctx = canvas.getContext('2d');
-        const refCanvas = document.getElementById('refCanvas');
-        const refCtx = refCanvas.getContext('2d');
-        const container = document.getElementById('canvas-container');
-        const viewport = document.getElementById('viewport');
+    function process(isEncoding) {
+        const file = isEncoding ? document.getElementById('inputImg').files[0] : document.getElementById('decodeImg').files[0];
+        if (!file) return alert("Select an image first!");
 
-        let points = [], lockedLines = [], mode = 'free'; 
-        let isDrawing = false, draggedPoint = null;
-        let lastTime = 0, lastPos = {x:0, y:0}, smoothedPos = {x:0, y:0};
-        let zoom = 1.0, listeningAction = null;
-        let keyMap = { undo: 'z', lock: 'l', zoomIn: '+', zoomOut: '-' };
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const cvs = document.getElementById('cvs');
+                const ctx = cvs.getContext('2d');
+                cvs.width = img.width;
+                cvs.height = img.height;
+                ctx.drawImage(img, 0, 0);
 
-        function init() { 
-            updateCanvasSize(); 
-            setMode('free');
-            window.addEventListener('keydown', handleGlobalKeys);
-            resetView();
-        }
+                const imgData = ctx.getImageData(0, 0, cvs.width, cvs.height);
+                const pixels = imgData.data;
+                const rand = seededRandom(42); // The "Key" (The Logic)
 
-        function resetView() {
-            zoom = 1.0;
-            container.style.transform = `scale(${zoom})`;
-            viewport.scrollLeft = (20000 - viewport.clientWidth) / 2;
-            viewport.scrollTop = (20000 - viewport.clientHeight) / 2;
-        }
-
-        function toggleSettings() {
-            const modal = document.getElementById('settings-modal');
-            modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
-        }
-
-        function exportCanvas() {
-            const link = document.createElement('a');
-            link.download = 'manga-art.png';
-            link.href = canvas.toDataURL();
-            link.click();
-        }
-
-        // --- NEW: VECTOR EXPORT LOGIC ---
-        function exportVector() {
-            const w = canvas.width;
-            const h = canvas.height;
-            let svgStr = [`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="background-color: white;">`];
-
-            lockedLines.forEach(l => {
-                const spline = getSplinePoints(l.pts);
-                let totalLen = 0;
-                for (let i = 0; i < spline.length - 1; i++) totalLen += Math.hypot(spline[i+1].x - spline[i].x, spline[i+1].y - spline[i].y);
-                let traveled = 0;
-                for (let i = 0; i < spline.length - 1; i++) {
-                    const p1 = spline[i], p2 = spline[i+1];
-                    const d = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-                    const steps = Math.max(d * 1.5, 1);
-                    for (let j = 0; j < steps; j++) {
-                        const T = (traveled + (j/steps) * d) / (totalLen || 1);
-                        const pressure = p1.p + (p2.p - p1.p) * (j/steps);
-                        const velocity = p1.v + (p2.v - p1.v) * (j/steps);
-                        let wFactor = (T < 0.5) ? l.tS + (l.tM - l.tS) * (T * 2) : l.tM + (l.tE - l.tM) * ((T - 0.5) * 2);
-                        let vMod = Math.max(0.3, 1 - (velocity * 0.05));
-                        let wBrush = l.size * wFactor * (pressure * 1.5) * vMod;
-                        const x = p1.x + (p2.x - p1.x) * (j/steps);
-                        const y = p1.y + (p2.y - p1.y) * (j/steps);
-                        let pseudoRandom = Math.sin(l.seed + T * 100); 
-                        for (let p = 0; p < (1 + l.grit/3); p++) {
-                            const alpha = 0.8 + Math.random()*0.2;
-                            // Eraser strokes paint pure white in SVG to match the white background
-                            const fill = l.isEraser ? `rgba(255,255,255,1)` : `rgba(0,0,0,${alpha})`;
-                            const jX = (Math.random()-0.5) * l.grit + (pseudoRandom * l.jitter);
-                            const cx = x + jX;
-                            const cy = y + (Math.random()-0.5)*l.grit;
-                            const r = (wBrush/2)*(0.8+Math.random()*0.4);
-                            svgStr.push(`<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${r.toFixed(2)}" fill="${fill}" />`);
+                if (isEncoding) {
+                    const text = document.getElementById('msg').value + "@@@"; // End marker
+                    for (let i = 0; i < text.length; i++) {
+                        let charCode = text.charCodeAt(i);
+                        for (let bit = 0; bit < 8; bit++) {
+                            // Find a "random" pixel index based on the seed
+                            let targetPixel = Math.floor(rand() * (pixels.length / 4)) * 4;
+                            let bitValue = (charCode >> (7 - bit)) & 1;
+                            
+                            // Change the color value by exactly 1 unit (invisible)
+                            pixels[targetPixel] = (pixels[targetPixel] & 0xFE) | bitValue;
                         }
                     }
-                    traveled += d;
-                }
-            });
+                    ctx.putImageData(imgData, 0, 0);
+                    const link = document.createElement('a');
+                    link.download = 'secret_pixel.png';
+                    link.href = cvs.toDataURL("image/png");
+                    link.click();
+                } else {
+                    let extracted = "";
+                    let charCode = 0;
+                    for (let i = 0; i < 5000; i++) { // Scan up to 5000 bits
+                        let targetPixel = Math.floor(rand() * (pixels.length / 4)) * 4;
+                        charCode = (charCode << 1) | (pixels[targetPixel] & 1);
 
-            svgStr.push(`</svg>`);
-            const blob = new Blob([svgStr.join('')], {type: "image/svg+xml"});
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "manga-art-vector.svg";
-            link.click();
-        }
-
-        function listenForKey(action) {
-            listeningAction = action;
-            document.querySelectorAll('.key-input').forEach(el => el.classList.remove('listening'));
-            document.getElementById('bind-' + action).classList.add('listening');
-        }
-
-        function handleGlobalKeys(e) {
-            if (e.key === 'Control') {
-                e.preventDefault();
-                resetView();
-                return;
-            }
-            if (listeningAction) {
-                keyMap[listeningAction] = e.key.toLowerCase();
-                document.getElementById('bind-' + listeningAction).innerText = e.key;
-                document.getElementById('bind-' + listeningAction).classList.remove('listening');
-                listeningAction = null;
-                return;
-            }
-            const key = e.key.toLowerCase();
-            if (key === keyMap.undo && (e.ctrlKey || e.metaKey || keyMap.undo !== 'z')) { e.preventDefault(); undo(); }
-            if (key === keyMap.lock) lockLine();
-            if (key === keyMap.zoomIn) updateZoom(1.1); 
-            if (key === keyMap.zoomOut) updateZoom(0.9); 
-        }
-
-        function updateZoom(factor) {
-            zoom *= factor;
-            zoom = Math.max(0.05, Math.min(10, zoom));
-            container.style.transform = `scale(${zoom})`;
-        }
-
-        function getMousePos(e) {
-            const rect = container.getBoundingClientRect();
-            return {
-                x: (e.clientX - rect.left) / zoom,
-                y: (e.clientY - rect.top) / zoom
-            };
-        }
-
-        function updateCanvasSize() {
-            const w = document.getElementById('canW').value;
-            const h = document.getElementById('canH').value;
-            canvas.width = refCanvas.width = w;
-            canvas.height = refCanvas.height = h;
-            container.style.width = w + "px";
-            container.style.height = h + "px";
-            render();
-        }
-
-        function setMode(m) {
-            mode = m;
-            // Added eraseBtn to the toggle loop
-            ['penBtn', 'freeBtn', 'liqBtn', 'eraseBtn'].forEach(id => {
-                const btn = document.getElementById(id);
-                if(btn) btn.className = id.startsWith(m) ? 'active' : '';
-            });
-            points = []; render();
-        }
-
-        canvas.onpointerdown = (e) => {
-            canvas.setPointerCapture(e.pointerId);
-            const pos = getMousePos(e);
-            isDrawing = true; lastTime = Date.now();
-            lastPos = smoothedPos = pos;
-            const pressure = document.getElementById('usePressure').checked ? (e.pressure || 0.5) : 0.8;
-            if (mode === 'pen') {
-                let hit = points.find(p => Math.hypot(p.x - pos.x, p.y - pos.y) < 15/zoom);
-                if (hit) draggedPoint = hit; else points.push({x: pos.x, y: pos.y, p: pressure, v: 1});
-            } else if (mode === 'free' || mode === 'erase') { // Free or Erase Mode
-                points = [{x: pos.x, y: pos.y, p: pressure, v: 1}];
-            }
-            render();
-        };
-
-        canvas.onpointermove = (e) => {
-            if (!isDrawing) return;
-            const pos = getMousePos(e);
-            const stab = parseInt(document.getElementById('stabilizer').value);
-            smoothedPos.x += (pos.x - smoothedPos.x) / stab;
-            smoothedPos.y += (pos.y - smoothedPos.y) / stab;
-            const now = Date.now();
-            const dist = Math.hypot(smoothedPos.x - lastPos.x, smoothedPos.y - lastPos.y);
-            const dt = now - lastTime;
-            const velocity = Math.min(dist / (dt || 1), 10);
-            const pressure = document.getElementById('usePressure').checked ? (e.pressure || 0.5) : 0.8;
-            if (mode === 'pen' && draggedPoint) {
-                draggedPoint.x = smoothedPos.x; draggedPoint.y = smoothedPos.y;
-            } else if ((mode === 'free' || mode === 'erase') && dist > 1) { // Free or Erase Mode
-                points.push({x: smoothedPos.x, y: smoothedPos.y, p: pressure, v: velocity});
-            } else if (mode === 'liquify') {
-                applyLiquify(smoothedPos.x, smoothedPos.y, lastPos.x, lastPos.y);
-            }
-            lastPos = {x: smoothedPos.x, y: smoothedPos.y}; lastTime = now;
-            render();
-        };
-
-        canvas.onpointerup = () => {
-            if ((mode === 'free' || mode === 'erase') && points.length > 2) lockLine();
-            isDrawing = false; draggedPoint = null;
-        };
-
-        function undo() { if(lockedLines.length > 0) { lockedLines.pop(); render(); } }
-
-        function lockLine() {
-            if (points.length < 2) return;
-            lockedLines.push({
-                pts: JSON.parse(JSON.stringify(points)),
-                size: parseInt(document.getElementById('thickness').value),
-                grit: parseFloat(document.getElementById('grit').value),
-                jitter: parseFloat(document.getElementById('jitter').value),
-                tS: parseInt(document.getElementById('taperS').value)/100,
-                tM: parseInt(document.getElementById('taperM').value)/100,
-                tE: parseInt(document.getElementById('taperE').value)/100,
-                seed: Math.random() * 1000,
-                isEraser: mode === 'erase' // Record if this stroke was an eraser
-            });
-            points = []; render();
-        }
-
-        function clearCanvas() { lockedLines = []; points = []; render(); }
-
-        function render() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw locked lines, applying correct composite mode if it's an eraser line
-            lockedLines.forEach(l => {
-                ctx.globalCompositeOperation = l.isEraser ? 'destination-out' : 'source-over';
-                drawMangaStroke(l.pts, l.size, l.grit, l.tS, l.tM, l.tE, l.jitter, l.seed);
-            });
-            
-            // Draw current active stroke with correct mode
-            ctx.globalCompositeOperation = mode === 'erase' ? 'destination-out' : 'source-over';
-            if (points.length >= 2) {
-                drawMangaStroke(points, parseInt(document.getElementById('thickness').value), parseFloat(document.getElementById('grit').value), 
-                    parseInt(document.getElementById('taperS').value)/100, parseInt(document.getElementById('taperM').value)/100, 
-                    parseInt(document.getElementById('taperE').value)/100, parseFloat(document.getElementById('jitter').value), 88);
-            }
-            
-            // Reset composite operation to default
-            ctx.globalCompositeOperation = 'source-over';
-        }
-
-        function drawMangaStroke(pts, maxSize, grit, tS, tM, tE, jitter, seed) {
-            const spline = getSplinePoints(pts);
-            let totalLen = 0;
-            for (let i = 0; i < spline.length - 1; i++) totalLen += Math.hypot(spline[i+1].x - spline[i].x, spline[i+1].y - spline[i].y);
-            let traveled = 0;
-            for (let i = 0; i < spline.length - 1; i++) {
-                const p1 = spline[i], p2 = spline[i+1];
-                const d = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-                const steps = Math.max(d * 1.5, 1);
-                for (let j = 0; j < steps; j++) {
-                    const T = (traveled + (j/steps) * d) / (totalLen || 1);
-                    const pressure = p1.p + (p2.p - p1.p) * (j/steps);
-                    const velocity = p1.v + (p2.v - p1.v) * (j/steps);
-                    let wFactor = (T < 0.5) ? tS + (tM - tS) * (T * 2) : tM + (tE - tM) * ((T - 0.5) * 2);
-                    let vMod = Math.max(0.3, 1 - (velocity * 0.05));
-                    let w = maxSize * wFactor * (pressure * 1.5) * vMod;
-                    const x = p1.x + (p2.x - p1.x) * (j/steps);
-                    const y = p1.y + (p2.y - p1.y) * (j/steps);
-                    let pseudoRandom = Math.sin(seed + T * 100); 
-                    for (let p = 0; p < (1 + grit/3); p++) {
-                        ctx.fillStyle = `rgba(0, 0, 0, ${0.8 + Math.random()*0.2})`;
-                        ctx.beginPath();
-                        const jX = (Math.random()-0.5) * grit + (pseudoRandom * jitter);
-                        ctx.arc(x + jX, y + (Math.random()-0.5)*grit, (w/2)*(0.8+Math.random()*0.4), 0, Math.PI*2);
-                        ctx.fill();
-                    }
-                }
-                traveled += d;
-            }
-        }
-
-        function getSplinePoints(pts) {
-            if (pts.length < 3) return pts;
-            let res = [];
-            let step = (mode === 'free' || mode === 'erase') ? 0.4 : 0.05;
-            for (let i = 0; i < pts.length - 1; i++) {
-                const p0 = pts[i-1] || pts[i], p1 = pts[i], p2 = pts[i+1], p3 = pts[i+2] || p2;
-                for (let t = 0; t < 1; t += step) {
-                    const t2 = t*t, t3 = t2*t;
-                    const x = 0.5 * ((2*p1.x)+(-p0.x+p2.x)*t+(2*p0.x-5*p1.x+4*p2.x-p3.x)*t2+(-p0.x+3*p1.x-3*p2.x+p3.x)*t3);
-                    const y = 0.5 * ((2*p1.y)+(-p0.y+p2.y)*t+(2*p0.y-5*p1.y+4*p2.y-p3.y)*t2+(-p0.y+3*p1.y-3*p2.y+p3.y)*t3);
-                    res.push({x, y, p: p1.p + (p2.p - p1.p) * t, v: p1.v + (p2.v - p1.v) * t});
-                }
-            }
-            res.push(pts[pts.length-1]);
-            return res;
-        }
-
-        function applyLiquify(mx, my, lx, ly) {
-            const strength = parseInt(document.getElementById('thickness').value);
-            const radius = Math.max(strength * 2, 20); 
-            const dx = mx - lx; const dy = my - ly;
-            lockedLines.forEach(line => {
-                line.pts.forEach(p => {
-                    const dist = Math.hypot(p.x - mx, p.y - my);
-                    if (dist < radius) {
-                        const power = Math.pow(1 - dist / radius, 2); 
-                        p.x += dx * power; p.y += dy * power;
-                    }
-                });
-            });
-        }
-
-        function saveDrawing() {
-            const btn = event.target;
-            const originalText = btn.innerText;
-            btn.innerText = "SAVING...";
-            
-            const drawingData = {
-                canW: document.getElementById('canW').value,
-                canH: document.getElementById('canH').value,
-                thickness: document.getElementById('thickness').value,
-                lines: lockedLines, 
-                timestamp: Date.now()
-            };
-
-            database.ref('drawings').push(drawingData)
-                .then(() => {
-                    btn.innerText = "✅ SAVED";
-                    setTimeout(() => btn.innerText = originalText, 2000);
-                })
-                .catch(err => {
-                    alert("Error saving: " + err);
-                    btn.innerText = originalText;
-                });
-        }
-
-        function openGallery() {
-            const modal = document.getElementById('gallery-modal');
-            const list = document.getElementById('gallery-list');
-            list.innerHTML = '<span style="color: #888;">Loading cloud drawings...</span>';
-            modal.style.display = 'block';
-
-            database.ref('drawings').once('value').then(snapshot => {
-                list.innerHTML = '';
-                const data = snapshot.val();
-                if (!data) {
-                    list.innerHTML = '<span style="color: #888;">No drawings found in the cloud.</span>';
-                    return;
-                }
-                
-                const sortedKeys = Object.keys(data).sort((a, b) => data[b].timestamp - data[a].timestamp);
-                
-                sortedKeys.forEach(key => {
-                    const item = data[key];
-                    
-                    // --- NEW: Layout to include Delete Button side-by-side ---
-                    const rowContainer = document.createElement('div');
-                    rowContainer.style.display = 'flex';
-                    rowContainer.style.gap = '8px';
-                    
-                    const btn = document.createElement('button');
-                    const date = new Date(item.timestamp).toLocaleString();
-                    btn.innerHTML = `📄 Drawing - ${date} <br><span style="font-size: 9px; color: #aaa; font-weight: normal;">Canvas: ${item.canW}x${item.canH} | Strokes: ${item.lines ? item.lines.length : 0}</span>`;
-                    btn.style.flexGrow = '1';
-                    btn.style.textAlign = 'left';
-                    btn.style.padding = '10px';
-                    btn.style.background = '#333';
-                    btn.style.border = '1px solid #444';
-                    btn.onclick = () => loadDrawing(item);
-                    
-                    const delBtn = document.createElement('button');
-                    delBtn.innerHTML = '🗑️';
-                    delBtn.style.background = '#8e2a2a';
-                    delBtn.onclick = () => {
-                        if (confirm("Delete this drawing from the cloud permanently?")) {
-                            database.ref('drawings/' + key).remove().then(() => openGallery());
+                        if ((i + 1) % 8 === 0) {
+                            let char = String.fromCharCode(charCode);
+                            extracted += char;
+                            if (extracted.endsWith("@@@")) break;
+                            charCode = 0;
                         }
-                    };
-
-                    rowContainer.appendChild(btn);
-                    rowContainer.appendChild(delBtn);
-                    list.appendChild(rowContainer);
-                });
-            }).catch(err => {
-                list.innerHTML = '<span style="color: red;">Failed to load gallery.</span>';
-                console.error(err);
-            });
-        }
-
-        function loadDrawing(item) {
-            if(!confirm("Load this drawing? Your current unsaved work will be lost.")) return;
-            
-            document.getElementById('canW').value = item.canW || 1000;
-            document.getElementById('canH').value = item.canH || 700;
-            if(item.thickness) document.getElementById('thickness').value = item.thickness;
-            
-            lockedLines = item.lines || [];
-            points = [];
-            
-            updateCanvasSize(); 
-            closeGallery();
-        }
-
-        function closeGallery() {
-            document.getElementById('gallery-modal').style.display = 'none';
-        }
-
-        init();
-    </script>
+                    }
+                    document.getElementById('output').innerText = extracted.replace("@@@","");
+                }
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+</script>
 </body>
 </html>
