@@ -2,94 +2,118 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pixel Synth v5 - Stable</title>
+    <title>Rugged Pixel Synth v6</title>
     <style>
-        body { font-family: sans-serif; background: #1a1a1a; color: #00ff41; text-align: center; padding: 20px; }
-        .box { border: 2px solid #00ff41; padding: 20px; max-width: 600px; margin: auto; background: #000; }
-        textarea { width: 90%; height: 60px; margin: 10px 0; background: #111; color: #fff; border: 1px solid #333; }
-        button { background: #00ff41; color: #000; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
-        #output { color: white; background: #222; padding: 10px; display: block; margin-top: 10px; }
+        body { font-family: monospace; background: #000; color: #0f0; text-align: center; padding: 20px; }
+        .box { border: 2px solid #0f0; padding: 20px; max-width: 600px; margin: auto; }
+        textarea { width: 90%; height: 60px; background: #111; color: #0f0; border: 1px solid #0f0; margin: 10px 0; }
+        button { background: #0f0; color: #000; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; margin: 5px; }
+        #log { color: #888; font-size: 0.8em; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2>STABLE PIXEL ENCODER</h2>
+    <h2>RUGGED SYNTH // ANTI-COMPRESSION</h2>
     
     <div>
-        <h3>1. Create Image</h3>
-        <input type="file" id="fileIn" accept="image/*"><br>
-        <textarea id="textIn" placeholder="Enter secret message..."></textarea><br>
-        <button onclick="handle(true)">DOWNLOAD ENCODED PNG</button>
+        <input type="file" id="fIn" accept="image/*"><br>
+        <textarea id="tIn" placeholder="Enter message..."></textarea><br>
+        <button onclick="run(true)">ENCODE & DOWNLOAD</button>
     </div>
 
-    <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
+    <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
 
     <div>
-        <h3>2. Read Image</h3>
-        <input type="file" id="fileDecode" accept="image/*"><br>
-        <button onclick="handle(false)">EXTRACT MESSAGE</button>
-        <div id="output">Result will appear here...</div>
+        <input type="file" id="fDec" accept="image/*"><br>
+        <button onclick="run(false)">DECODE IMAGE</button>
+        <div id="res" style="color:#fff; background:#222; margin-top:10px; padding:10px;">...</div>
     </div>
+    <div id="log"></div>
 </div>
 
-<canvas id="canvas" style="display:none;"></canvas>
+<canvas id="c" style="display:none;"></canvas>
 
 <script>
-function handle(isEncode) {
-    const input = isEncode ? document.getElementById('fileIn') : document.getElementById('fileDecode');
-    if (!input.files[0]) return alert("Select an image!");
+const B_SIZE = 10; // 10x10 pixel blocks
+const SHIFT = 20;  // High visibility shift to survive JPEG/Insta
+
+function run(encode) {
+    const input = encode ? document.getElementById('fIn') : document.getElementById('fDec');
+    if (!input.files[0]) return alert("Select Image!");
 
     const reader = new FileReader();
     reader.onload = function(e) {
         const img = new Image();
         img.onload = function() {
-            const cvs = document.getElementById('canvas');
-            const ctx = cvs.getContext('2d');
-            cvs.width = img.width;
-            cvs.height = img.height;
+            const c = document.getElementById('c');
+            const ctx = c.getContext('2d');
+            c.width = img.width;
+            c.height = img.height;
             ctx.drawImage(img, 0, 0);
 
-            const imgData = ctx.getImageData(0, 0, cvs.width, cvs.height);
+            const imgData = ctx.getImageData(0, 0, c.width, c.height);
             const data = imgData.data;
+            const cols = Math.floor(c.width / B_SIZE);
 
-            if (isEncode) {
-                const secret = document.getElementById('textIn').value + "###"; // Terminator
+            if (encode) {
+                const msg = document.getElementById('tIn').value + "###";
                 let bitIdx = 0;
-                
-                for (let i = 0; i < secret.length; i++) {
-                    let charCode = secret.charCodeAt(i);
+
+                for (let i = 0; i < msg.length; i++) {
+                    let code = msg.charCodeAt(i);
                     for (let b = 7; b >= 0; b--) {
-                        let bit = (charCode >> b) & 1;
-                        let pixelPos = bitIdx * 4; // Using Red channel of every pixel
-                        
-                        // If bit is 1, make value ODD. If 0, make value EVEN.
-                        if (bit === 1) {
-                            if (data[pixelPos] % 2 === 0) data[pixelPos]++;
-                        } else {
-                            if (data[pixelPos] % 2 !== 0) data[pixelPos]--;
+                        let bit = (code >> b) & 1;
+                        let bCol = bitIdx % cols;
+                        let bRow = Math.floor(bitIdx / cols);
+
+                        // Apply to a 10x10 block
+                        for (let y = 0; y < B_SIZE; y++) {
+                            for (let x = 0; x < B_SIZE; x++) {
+                                let pIdx = ((bRow * B_SIZE + y) * c.width + (bCol * B_SIZE + x)) * 4;
+                                // Shift brightness up for 1, down for 0
+                                data[pIdx] = bit === 1 ? Math.min(255, data[pIdx] + SHIFT) : Math.max(0, data[pIdx] - SHIFT);
+                            }
                         }
                         bitIdx++;
                     }
                 }
                 ctx.putImageData(imgData, 0, 0);
                 const link = document.createElement('a');
-                link.download = 'encoded.png';
-                link.href = cvs.toDataURL("image/png");
+                link.download = 'rugged_insta.png';
+                link.href = c.toDataURL("image/png");
                 link.click();
             } else {
-                let binary = "";
-                let msg = "";
-                for (let i = 0; i < data.length; i += 4) {
-                    binary += (data[i] % 2 !== 0) ? "1" : "0";
-                    if (binary.length === 8) {
-                        let char = String.fromCharCode(parseInt(binary, 2));
-                        msg += char;
-                        binary = "";
-                        if (msg.endsWith("###")) break;
+                let bin = "";
+                let out = "";
+                let bitIdx = 0;
+                while (true) {
+                    let bCol = bitIdx % cols;
+                    let bRow = Math.floor(bitIdx / cols);
+                    if ((bRow + 1) * B_SIZE > c.height) break;
+
+                    let total = 0;
+                    for (let y = 0; y < B_SIZE; y++) {
+                        for (let x = 0; x < B_SIZE; x++) {
+                            let pIdx = ((bRow * B_SIZE + y) * c.width + (bCol * B_SIZE + x)) * 4;
+                            total += data[pIdx];
+                        }
                     }
+                    
+                    // Logic: Average brightness of the block
+                    let avg = total / (B_SIZE * B_SIZE);
+                    bin += (avg > 127) ? "1" : "0"; // This is a simplified threshold
+
+                    if (bin.length === 8) {
+                        let char = String.fromCharCode(parseInt(bin, 2));
+                        out += char;
+                        bin = "";
+                        if (out.endsWith("###")) break;
+                    }
+                    bitIdx++;
+                    if (out.length > 500) break; // Safety stop
                 }
-                document.getElementById('output').innerText = msg.replace("###", "");
+                document.getElementById('result').innerText = out.replace("###", "");
             }
         };
         img.src = e.target.result;
