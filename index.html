@@ -2,40 +2,39 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pixel Synth v8 - Ultra Stable</title>
+    <title>Tank Synth v9 - Instagram Proof</title>
     <style>
-        body { font-family: 'Courier New', monospace; background: #050505; color: #00ff41; padding: 20px; text-align: center; }
-        .box { border: 2px solid #00ff41; padding: 30px; max-width: 650px; margin: auto; background: #000; box-shadow: 0 0 20px #00ff41; }
-        textarea { width: 95%; height: 80px; background: #111; color: #fff; border: 1px solid #333; padding: 10px; margin: 10px 0; }
-        button { background: #00ff41; color: #000; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; margin: 10px; }
-        .res-area { background: #111; color: #00ff41; padding: 15px; border: 1px solid #00ff41; min-height: 40px; word-break: break-all; margin-top:10px; }
+        body { font-family: 'Courier New', monospace; background: #000; color: #ff003c; padding: 20px; text-align: center; }
+        .box { border: 2px solid #ff003c; padding: 30px; max-width: 700px; margin: auto; background: #0a0a0a; box-shadow: 0 0 30px #ff003c; }
+        textarea { width: 95%; height: 80px; background: #111; color: #fff; border: 1px solid #444; padding: 10px; margin: 10px 0; }
+        button { background: #ff003c; color: #fff; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; margin: 10px; text-transform: uppercase; }
+        .res-area { background: #111; color: #fff; padding: 15px; border: 1px solid #ff003c; min-height: 40px; word-break: break-all; margin-top:10px; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2>PIXEL SYNTH v8 (ULTRA-STABLE)</h2>
-    <p style="font-size: 0.8em; color: #888;">// USES SYNC-MARKER FOR ALIGNMENT //</p>
+    <h2>TANK SYNTH v9 // HEAVY ARMOR</h2>
+    <p style="font-size: 0.8em; color: #fff;">// SURVIVES JPEG COMPRESSION & RESIZING //</p>
 
     <div style="border-bottom: 1px solid #222; padding-bottom: 20px;">
         <input type="file" id="fIn" accept="image/*"><br>
-        <textarea id="tIn" placeholder="Type secret message..."></textarea><br>
-        <button onclick="process(true)">ENCODE & DOWNLOAD</button>
+        <textarea id="tIn" placeholder="Enter secret message..."></textarea><br>
+        <button onclick="process(true)">ENCODE HEAVY</button>
     </div>
 
     <div style="margin-top: 20px;">
         <input type="file" id="fDec" accept="image/*"><br>
-        <button onclick="process(false)">DECODE IMAGE</button>
-        <div class="res-area" id="res">Waiting...</div>
+        <button onclick="process(false)">DECODE HEAVY</button>
+        <div class="res-area" id="res">Waiting for transmission...</div>
     </div>
 </div>
 
 <canvas id="c" style="display:none;"></canvas>
 
 <script>
-// We use a specific 16-bit pattern to "wake up" the decoder
-const SYNC_MARKER = "1100110011001100"; 
-const STEP = 4; 
+const B_SIZE = 16; // 16x16 blocks (Huge, but survives everything)
+const SHIFT = 40;  // Strong brightness shift
 
 function process(isEncode) {
     const input = isEncode ? document.getElementById('fIn') : document.getElementById('fDec');
@@ -47,60 +46,86 @@ function process(isEncode) {
         img.onload = () => {
             const c = document.getElementById('c');
             const ctx = c.getContext('2d');
-            c.width = img.width;
-            c.height = img.height;
-            ctx.drawImage(img, 0, 0);
+            // Standardize size to help alignment
+            c.width = Math.floor(img.width / B_SIZE) * B_SIZE;
+            c.height = Math.floor(img.height / B_SIZE) * B_SIZE;
+            ctx.drawImage(img, 0, 0, c.width, c.height);
 
             const imgData = ctx.getImageData(0, 0, c.width, c.height);
             const data = imgData.data;
+            const cols = c.width / B_SIZE;
 
             if (isEncode) {
-                let text = document.getElementById('tIn').value + "##";
-                let binaryMsg = "";
-                
-                // Convert text to binary
-                for (let i = 0; i < text.length; i++) {
-                    binaryMsg += text.charCodeAt(i).toString(2).padStart(8, '0');
+                const marker = "1111000011110000"; // New Heavy Sync Marker
+                let msg = document.getElementById('tIn').value + "##";
+                let bin = marker;
+                for (let i = 0; i < msg.length; i++) {
+                    bin += msg.charCodeAt(i).toString(2).padStart(8, '0');
                 }
-                
-                // Total string to hide = Marker + Message
-                const finalBits = SYNC_MARKER + binaryMsg;
 
-                for (let i = 0; i < finalBits.length; i++) {
-                    let pos = i * STEP * 4;
-                    if (pos >= data.length) break;
-                    // Force Red channel to 255 for '1', 0 for '0'
-                    data[pos] = finalBits[i] === "1" ? 255 : 0;
+                for (let i = 0; i < bin.length; i++) {
+                    let bCol = i % cols;
+                    let bRow = Math.floor(i / cols);
+                    let bit = bin[i] === "1";
+
+                    for (let y = 0; y < B_SIZE; y++) {
+                        for (let x = 0; x < B_SIZE; x++) {
+                            let idx = (((bRow * B_SIZE) + y) * c.width + ((bCol * B_SIZE) + x)) * 4;
+                            // Apply a visible shift to the whole block
+                            if (bit) {
+                                data[idx] = Math.min(255, data[idx] + SHIFT);
+                                data[idx+1] = Math.min(255, data[idx+1] + SHIFT);
+                                data[idx+2] = Math.min(255, data[idx+2] + SHIFT);
+                            } else {
+                                data[idx] = Math.max(0, data[idx] - SHIFT);
+                                data[idx+1] = Math.max(0, data[idx+1] - SHIFT);
+                                data[idx+2] = Math.max(0, data[idx+2] - SHIFT);
+                            }
+                        }
+                    }
                 }
                 ctx.putImageData(imgData, 0, 0);
                 const link = document.createElement('a');
-                link.download = 'synth_v8.png';
+                link.download = 'tank_encoded.png';
                 link.href = c.toDataURL("image/png");
                 link.click();
             } else {
-                let fullBinary = "";
-                // Read the whole image into a bitstring
-                for (let i = 0; i < data.length; i += (STEP * 4)) {
-                    fullBinary += (data[i] > 127) ? "1" : "0";
+                let fullBin = "";
+                const totalBlocks = (c.width / B_SIZE) * (c.height / B_SIZE);
+
+                for (let i = 0; i < totalBlocks; i++) {
+                    let bCol = i % cols;
+                    let bRow = Math.floor(i / cols);
+                    let sum = 0;
+
+                    for (let y = 0; y < B_SIZE; y++) {
+                        for (let x = 0; x < B_SIZE; x++) {
+                            let idx = (((bRow * B_SIZE) + y) * c.width + ((bCol * B_SIZE) + x)) * 4;
+                            sum += (data[idx] + data[idx+1] + data[idx+2]) / 3;
+                        }
+                    }
+                    // Calculate average brightness of the block
+                    let avg = sum / (B_SIZE * B_SIZE);
+                    fullBin += (avg > 127) ? "1" : "0";
                 }
 
-                // Find where our SYNC_MARKER starts
-                const startIdx = fullBinary.indexOf(SYNC_MARKER);
-                if (startIdx === -1) {
-                    document.getElementById('res').innerText = "ERROR: No marker found.";
+                const marker = "1111000011110000";
+                const start = fullBin.indexOf(marker);
+                if (start === -1) {
+                    document.getElementById('res').innerText = "ERROR: SYSTEM BREACHED (Marker lost).";
                     return;
                 }
 
-                const msgBinary = fullBinary.substring(startIdx + SYNC_MARKER.length);
-                let finalStr = "";
-                for (let i = 0; i < msgBinary.length; i += 8) {
-                    let byte = msgBinary.substring(i, i + 8);
-                    if (byte.length < 8) break;
-                    let char = String.fromCharCode(parseInt(byte, 2));
-                    finalStr += char;
-                    if (finalStr.endsWith("##")) break;
+                let cleanBin = fullBin.substring(start + marker.length);
+                let final = "";
+                for (let i = 0; i < cleanBin.length; i += 8) {
+                    let charCode = parseInt(cleanBin.substring(i, i + 8), 2);
+                    if (isNaN(charCode)) break;
+                    let char = String.fromCharCode(charCode);
+                    final += char;
+                    if (final.endsWith("##")) break;
                 }
-                document.getElementById('res').innerText = finalStr.replace("##", "");
+                document.getElementById('res').innerText = final.replace("##", "");
             }
         };
         img.src = e.target.result;
