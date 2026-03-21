@@ -2,55 +2,49 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Rugged Synth v7 - Final Fix</title>
+    <title>Pixel Synth v8 - Ultra Stable</title>
     <style>
-        body { font-family: 'Courier New', monospace; background: #121212; color: #00ff41; padding: 20px; text-align: center; }
-        .box { border: 2px solid #00ff41; padding: 30px; max-width: 650px; margin: auto; background: #000; box-shadow: 0 0 20px #00ff41; border-radius: 10px; }
-        textarea { width: 95%; height: 80px; background: #1a1a1a; color: #fff; border: 1px solid #333; padding: 10px; margin: 10px 0; font-size: 14px; }
-        button { background: #00ff41; color: #000; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; margin: 10px; border-radius: 5px; }
-        button:hover { background: #fff; }
-        #status { color: #ff00ea; font-weight: bold; margin: 10px; }
-        .result-area { background: #222; color: #fff; padding: 15px; border: 1px dashed #00ff41; min-height: 50px; word-break: break-all; }
+        body { font-family: 'Courier New', monospace; background: #050505; color: #00ff41; padding: 20px; text-align: center; }
+        .box { border: 2px solid #00ff41; padding: 30px; max-width: 650px; margin: auto; background: #000; box-shadow: 0 0 20px #00ff41; }
+        textarea { width: 95%; height: 80px; background: #111; color: #fff; border: 1px solid #333; padding: 10px; margin: 10px 0; }
+        button { background: #00ff41; color: #000; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; margin: 10px; }
+        .res-area { background: #111; color: #00ff41; padding: 15px; border: 1px solid #00ff41; min-height: 40px; word-break: break-all; margin-top:10px; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2>RUGGED PIXEL SYNTH v7</h2>
-    <div id="status">READY</div>
+    <h2>PIXEL SYNTH v8 (ULTRA-STABLE)</h2>
+    <p style="font-size: 0.8em; color: #888;">// USES SYNC-MARKER FOR ALIGNMENT //</p>
 
-    <div style="border-bottom: 1px solid #333; padding-bottom: 20px;">
-        <h3>ENCODE (Create Secret)</h3>
+    <div style="border-bottom: 1px solid #222; padding-bottom: 20px;">
         <input type="file" id="fIn" accept="image/*"><br>
-        <textarea id="tIn" placeholder="Type your secret message..."></textarea><br>
-        <button onclick="process(true)">ENCODE & DOWNLOAD PNG</button>
+        <textarea id="tIn" placeholder="Type secret message..."></textarea><br>
+        <button onclick="process(true)">ENCODE & DOWNLOAD</button>
     </div>
 
     <div style="margin-top: 20px;">
-        <h3>DECODE (Read Secret)</h3>
         <input type="file" id="fDec" accept="image/*"><br>
         <button onclick="process(false)">DECODE IMAGE</button>
-        <div class="result-area" id="res">Message will appear here...</div>
+        <div class="res-area" id="res">Waiting...</div>
     </div>
 </div>
 
 <canvas id="c" style="display:none;"></canvas>
 
 <script>
-const STEP = 8; // How many pixels to skip (survives compression)
-const THRESHOLD = 128;
+// We use a specific 16-bit pattern to "wake up" the decoder
+const SYNC_MARKER = "1100110011001100"; 
+const STEP = 4; 
 
 function process(isEncode) {
     const input = isEncode ? document.getElementById('fIn') : document.getElementById('fDec');
-    const status = document.getElementById('status');
-    
     if (!input.files[0]) return alert("Select an image!");
-    status.innerText = "PROCESSING...";
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = (e) => {
         const img = new Image();
-        img.onload = function() {
+        img.onload = () => {
             const c = document.getElementById('c');
             const ctx = c.getContext('2d');
             c.width = img.width;
@@ -61,46 +55,52 @@ function process(isEncode) {
             const data = imgData.data;
 
             if (isEncode) {
-                const msg = document.getElementById('tIn').value + "@@"; // Simpler terminator
-                let bitIdx = 0;
+                let text = document.getElementById('tIn').value + "##";
+                let binaryMsg = "";
+                
+                // Convert text to binary
+                for (let i = 0; i < text.length; i++) {
+                    binaryMsg += text.charCodeAt(i).toString(2).padStart(8, '0');
+                }
+                
+                // Total string to hide = Marker + Message
+                const finalBits = SYNC_MARKER + binaryMsg;
 
-                for (let i = 0; i < msg.length; i++) {
-                    let charCode = msg.charCodeAt(i);
-                    for (let b = 7; b >= 0; b--) {
-                        let bit = (charCode >> b) & 1;
-                        let pos = bitIdx * STEP * 4;
-                        
-                        if (pos + 3 >= data.length) break;
-
-                        // Force the pixel value to be clearly High or Low
-                        // This survives the "averaging" of Instagram's compression
-                        data[pos] = bit === 1 ? 255 : 0; 
-                        bitIdx++;
-                    }
+                for (let i = 0; i < finalBits.length; i++) {
+                    let pos = i * STEP * 4;
+                    if (pos >= data.length) break;
+                    // Force Red channel to 255 for '1', 0 for '0'
+                    data[pos] = finalBits[i] === "1" ? 255 : 0;
                 }
                 ctx.putImageData(imgData, 0, 0);
                 const link = document.createElement('a');
-                link.download = 'rugged_v7.png';
+                link.download = 'synth_v8.png';
                 link.href = c.toDataURL("image/png");
                 link.click();
-                status.innerText = "ENCODED SUCCESSFULLY";
             } else {
-                let bin = "";
-                let out = "";
+                let fullBinary = "";
+                // Read the whole image into a bitstring
                 for (let i = 0; i < data.length; i += (STEP * 4)) {
-                    // Check if the Red channel is closer to 255 or 0
-                    bin += (data[i] > THRESHOLD) ? "1" : "0";
-                    
-                    if (bin.length === 8) {
-                        let char = String.fromCharCode(parseInt(bin, 2));
-                        out += char;
-                        bin = "";
-                        if (out.endsWith("@@")) break;
-                    }
-                    if (out.length > 1000) break;
+                    fullBinary += (data[i] > 127) ? "1" : "0";
                 }
-                document.getElementById('res').innerText = out.replace("@@", "");
-                status.innerText = "DECODE COMPLETE";
+
+                // Find where our SYNC_MARKER starts
+                const startIdx = fullBinary.indexOf(SYNC_MARKER);
+                if (startIdx === -1) {
+                    document.getElementById('res').innerText = "ERROR: No marker found.";
+                    return;
+                }
+
+                const msgBinary = fullBinary.substring(startIdx + SYNC_MARKER.length);
+                let finalStr = "";
+                for (let i = 0; i < msgBinary.length; i += 8) {
+                    let byte = msgBinary.substring(i, i + 8);
+                    if (byte.length < 8) break;
+                    let char = String.fromCharCode(parseInt(byte, 2));
+                    finalStr += char;
+                    if (finalStr.endsWith("##")) break;
+                }
+                document.getElementById('res').innerText = finalStr.replace("##", "");
             }
         };
         img.src = e.target.result;
