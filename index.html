@@ -2,42 +2,43 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pixel Synth Encoder</title>
+    <title>Rugged Pixel Synth v3.0</title>
     <style>
         body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #00ff41; padding: 20px; text-align: center; }
-        .box { border: 1px solid #00ff41; padding: 20px; max-width: 700px; margin: auto; background: #000; box-shadow: 0 0 15px #00ff41; }
-        input, textarea { background: #111; color: #00ff41; border: 1px solid #00ff41; padding: 10px; width: 80%; margin: 10px 0; }
-        button { background: #00ff41; color: #000; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; margin: 10px; }
-        button:hover { background: #008f11; }
-        img { max-width: 100%; border: 1px solid #333; margin-top: 15px; }
-        .hidden { display: none; }
+        .box { border: 2px solid #00ff41; padding: 20px; max-width: 750px; margin: auto; background: #000; box-shadow: 0 0 20px #00ff41; }
+        input, textarea { background: #111; color: #00ff41; border: 1px solid #00ff41; padding: 10px; width: 85%; margin: 10px 0; }
+        button { background: #00ff41; color: #000; border: none; padding: 12px 25px; font-weight: bold; cursor: pointer; margin: 10px; text-transform: uppercase; }
+        button:hover { background: #fff; box-shadow: 0 0 10px #fff; }
+        .status { color: #888; font-size: 0.8em; margin-top: 5px; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2>PIXEL SYNTH v2.0</h2>
-    <p>// SECURE DATA FRAGMENTATION //</p>
+    <h2>RUGGED PIXEL SYNTH // V3</h2>
+    <p style="color: #ff003c;">[ ANTI-COMPRESSION MODE ACTIVE ]</p>
 
-    <div style="border-bottom: 1px dotted #00ff41; padding-bottom: 20px;">
-        <h3>ENCODE MESSAGE</h3>
-        <input type="file" id="inputImg" accept="image/png">
-        <textarea id="msg" placeholder="Enter secret transmission..."></textarea>
-        <button onclick="process(true)">EMBED & GENERATE</button>
+    <div style="border-bottom: 1px solid #333; padding-bottom: 20px;">
+        <h3>ENCODE</h3>
+        <input type="file" id="inputImg" accept="image/*">
+        <textarea id="msg" placeholder="Enter message to fragment..."></textarea><br>
+        <button onclick="process(true)">Generate Rugged Image</button>
     </div>
 
     <div style="margin-top: 20px;">
-        <h3>DECODE IMAGE</h3>
-        <input type="file" id="decodeImg" accept="image/png">
-        <button onclick="process(false)">EXTRACT DATA</button>
-        <p>OUTPUT: <span id="output" style="color: white; background: #222;">...</span></p>
+        <h3>DECODE</h3>
+        <input type="file" id="decodeImg" accept="image/*">
+        <button onclick="process(false)">Extract Rugged Data</button>
+        <p>DECODED: <span id="output" style="color: #fff; font-weight: bold;">...</span></p>
     </div>
 </div>
 
-<canvas id="cvs" class="hidden"></canvas>
+<canvas id="cvs" style="display:none;"></canvas>
 
 <script>
-    // A simple seeded random to simulate the "Logic" 
+    const STRENGTH = 15; // How much we change the color (0-255)
+    const BLOCK_SIZE = 4; // Use 4x4 pixel blocks for stability
+
     function seededRandom(seed) {
         return function() {
             seed = (seed * 9301 + 49297) % 233280;
@@ -46,8 +47,8 @@
     }
 
     function process(isEncoding) {
-        const file = isEncoding ? document.getElementById('inputImg').files[0] : document.getElementById('decodeImg').files[0];
-        if (!file) return alert("Select an image first!");
+        const fileInput = isEncoding ? document.getElementById('inputImg') : document.getElementById('decodeImg');
+        if (!fileInput.files[0]) return alert("Please select an image.");
 
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -61,46 +62,67 @@
 
                 const imgData = ctx.getImageData(0, 0, cvs.width, cvs.height);
                 const pixels = imgData.data;
-                const rand = seededRandom(42); // The "Key" (The Logic)
+                const rand = seededRandom(1337); 
 
                 if (isEncoding) {
-                    const text = document.getElementById('msg').value + "@@@"; // End marker
+                    const text = document.getElementById('msg').value + "###";
                     for (let i = 0; i < text.length; i++) {
                         let charCode = text.charCodeAt(i);
                         for (let bit = 0; bit < 8; bit++) {
-                            // Find a "random" pixel index based on the seed
-                            let targetPixel = Math.floor(rand() * (pixels.length / 4)) * 4;
                             let bitValue = (charCode >> (7 - bit)) & 1;
-                            
-                            // Change the color value by exactly 1 unit (invisible)
-                            pixels[targetPixel] = (pixels[targetPixel] & 0xFE) | bitValue;
+                            let startX = Math.floor(rand() * (cvs.width - BLOCK_SIZE));
+                            let startY = Math.floor(rand() * (cvs.height - BLOCK_SIZE));
+
+                            // Apply bit to a whole block of pixels
+                            for (let y = 0; y < BLOCK_SIZE; y++) {
+                                for (let x = 0; x < BLOCK_SIZE; x++) {
+                                    let idx = ((startY + y) * cvs.width + (startX + x)) * 4;
+                                    if (bitValue === 1) {
+                                        pixels[idx] = Math.min(255, pixels[idx] + STRENGTH);
+                                    } else {
+                                        pixels[idx] = Math.max(0, pixels[idx] - STRENGTH);
+                                    }
+                                }
+                            }
                         }
                     }
                     ctx.putImageData(imgData, 0, 0);
                     const link = document.createElement('a');
-                    link.download = 'secret_pixel.png';
+                    link.download = 'rugged_transmission.png';
                     link.href = cvs.toDataURL("image/png");
                     link.click();
                 } else {
                     let extracted = "";
                     let charCode = 0;
-                    for (let i = 0; i < 5000; i++) { // Scan up to 5000 bits
-                        let targetPixel = Math.floor(rand() * (pixels.length / 4)) * 4;
-                        charCode = (charCode << 1) | (pixels[targetPixel] & 1);
+                    for (let i = 0; i < 1000; i++) { 
+                        let startX = Math.floor(rand() * (cvs.width - BLOCK_SIZE));
+                        let startY = Math.floor(rand() * (cvs.height - BLOCK_SIZE));
+                        
+                        let vote = 0;
+                        for (let y = 0; y < BLOCK_SIZE; y++) {
+                            for (let x = 0; x < BLOCK_SIZE; x++) {
+                                let idx = ((startY + y) * cvs.width + (startX + x)) * 4;
+                                // Basic thresholding logic
+                                if (pixels[idx] > 127) vote++; else vote--;
+                            }
+                        }
+                        
+                        let bit = (vote > 0) ? 1 : 0;
+                        charCode = (charCode << 1) | bit;
 
                         if ((i + 1) % 8 === 0) {
                             let char = String.fromCharCode(charCode);
                             extracted += char;
-                            if (extracted.endsWith("@@@")) break;
+                            if (extracted.endsWith("###")) break;
                             charCode = 0;
                         }
                     }
-                    document.getElementById('output').innerText = extracted.replace("@@@","");
+                    document.getElementById('output').innerText = extracted.replace("###","");
                 }
             };
             img.src = e.target.result;
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(fileInput.files[0]);
     }
 </script>
 </body>
