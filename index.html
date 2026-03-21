@@ -2,55 +2,42 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Ironclad v13 - Digital Gain</title>
+    <title>Deep-Sea Synth v14</title>
     <style>
-        body { font-family: 'Courier New', monospace; background: #000; color: #00ffcc; text-align: center; padding: 20px; }
-        .box { border: 2px solid #00ffcc; padding: 30px; max-width: 650px; margin: auto; background: #0a0a0a; box-shadow: 0 0 20px #00ffcc; }
-        textarea { width: 95%; height: 80px; background: #111; color: #fff; border: 1px solid #333; padding: 10px; margin: 10px 0; }
-        .slider-wrap { margin: 20px 0; padding: 10px; border: 1px solid #333; }
-        button { background: #00ffcc; color: #000; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; margin: 10px; border-radius: 5px; }
-        button:hover { background: #fff; }
-        #res { background: #111; color: #00ffcc; padding: 15px; border: 1px solid #00ffcc; min-height: 40px; word-break: break-all; margin-top:10px; }
+        body { font-family: monospace; background: #000; color: #00ffcc; text-align: center; padding: 20px; }
+        .box { border: 2px solid #00ffcc; padding: 25px; max-width: 600px; margin: auto; background: #050505; }
+        textarea { width: 95%; height: 60px; background: #111; color: #fff; border: 1px solid #333; margin: 10px 0; }
+        button { background: #00ffcc; color: #000; border: none; padding: 12px 20px; font-weight: bold; cursor: pointer; margin: 5px; }
+        .status { color: #ff00ff; margin: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2>IRONCLAD v13 // DIGITAL GAIN</h2>
-    
-    <div class="slider-wrap">
-        <label>DIGITAL GAIN (STRENGTH): </label>
-        <input type="range" id="gain" min="20" max="120" value="80">
-        <span id="gainVal">80</span>
-    </div>
+    <h2>DEEP-SEA SYNTH v14</h2>
+    <div id="status" class="status">READY</div>
 
-    <div style="border-bottom: 1px solid #222; padding-bottom: 20px;">
-        <input type="file" id="fIn" accept="image/*"><br>
-        <textarea id="tIn" placeholder="Enter message..."></textarea><br>
-        <button onclick="process(true)">ENCODE WITH GAIN</button>
-    </div>
+    <input type="file" id="fIn" accept="image/*"><br>
+    <textarea id="tIn" placeholder="Enter message..."></textarea><br>
+    <button onclick="run(true)">ENCODE FOR INSTA</button>
 
-    <div style="margin-top: 20px;">
-        <input type="file" id="fDec" accept="image/*"><br>
-        <button onclick="process(false)">DECODE SIGNAL</button>
-        <div id="res">Waiting for signal...</div>
-    </div>
+    <hr style="border:0; border-top:1px solid #222; margin:20px 0;">
+
+    <input type="file" id="fDec" accept="image/*"><br>
+    <button onclick="run(false)">DECODE INSTA IMAGE</button>
+    <div id="res" style="background:#111; padding:10px; border:1px solid #333; margin-top:10px;">...</div>
 </div>
 
 <canvas id="c" style="display:none;"></canvas>
 
 <script>
-const CLUSTER = 4; // 4x4 pixel clusters per bit
-const SYNC = "1111000011110000"; 
+const CLUSTER = 8; // Larger clusters to survive JPEG "smudge"
+const SYNC_BIT = "11110000";
 
-document.getElementById('gain').oninput = function() {
-    document.getElementById('gainVal').innerText = this.value;
-};
-
-function process(isEncode) {
+function run(isEncode) {
     const input = isEncode ? document.getElementById('fIn') : document.getElementById('fDec');
-    const gain = parseInt(document.getElementById('gain').value);
-    if (!input.files[0]) return alert("Select image!");
+    const status = document.getElementById('status');
+    if (!input.files[0]) return alert("Upload image!");
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -58,6 +45,7 @@ function process(isEncode) {
         img.onload = () => {
             const c = document.getElementById('c');
             const ctx = c.getContext('2d');
+            // Force standard dimensions to prevent scaling errors
             c.width = img.width;
             c.height = img.height;
             ctx.drawImage(img, 0, 0);
@@ -66,7 +54,7 @@ function process(isEncode) {
             const data = imgData.data;
 
             if (isEncode) {
-                let bin = SYNC + (document.getElementById('tIn').value + "##").split('').map(c => 
+                let bin = SYNC_BIT + (document.getElementById('tIn').value + "##").split('').map(c => 
                     c.charCodeAt(0).toString(2).padStart(8, '0')
                 ).join('');
 
@@ -80,54 +68,56 @@ function process(isEncode) {
                     for (let y = 0; y < CLUSTER; y++) {
                         for (let x = 0; x < CLUSTER; x++) {
                             let idx = (((bRow * CLUSTER) + y) * c.width + ((bCol * CLUSTER) + x)) * 4;
-                            // Shift BLUE channel based on Gain
-                            // We use Blue because JPEG compression smudges Red/Green first
-                            if (bit) {
-                                data[idx+2] = Math.min(255, data[idx+2] + gain);
-                            } else {
-                                data[idx+2] = Math.max(0, data[idx+2] - gain);
-                            }
+                            // Sledgehammer all channels for maximum JPEG survival
+                            let val = bit ? 255 : 0;
+                            data[idx] = val;
+                            data[idx+1] = val;
+                            data[idx+2] = val;
                         }
                     }
                 }
                 ctx.putImageData(imgData, 0, 0);
                 const link = document.createElement('a');
-                link.download = 'gain_encoded.png';
+                link.download = 'for_insta.png';
                 link.href = c.toDataURL("image/png");
                 link.click();
+                status.innerText = "ENCODE DONE";
             } else {
                 let fullBin = "";
                 const cols = Math.floor(c.width / CLUSTER);
-                const rows = Math.floor(c.height / CLUSTER);
+                
+                for (let i = 0; i < 2000; i++) {
+                    let bCol = i % cols;
+                    let bRow = Math.floor(i / cols);
+                    let sum = 0;
 
-                for (let r = 0; r < rows; r++) {
-                    for (let col = 0; col < cols; col++) {
-                        let avgB = 0;
-                        for (let y = 0; y < CLUSTER; y++) {
-                            for (let x = 0; x < CLUSTER; x++) {
-                                avgB += data[(((r * CLUSTER) + y) * c.width + ((col * CLUSTER) + x)) * 4 + 2];
-                            }
+                    for (let y = 0; y < CLUSTER; y++) {
+                        for (let x = 0; x < CLUSTER; x++) {
+                            let idx = (((bRow * CLUSTER) + y) * c.width + ((bCol * CLUSTER) + x)) * 4;
+                            sum += (data[idx] + data[idx+1] + data[idx+2]) / 3;
                         }
-                        // Use a rolling threshold or middle point
-                        fullBin += (avgB / (CLUSTER * CLUSTER) > 127) ? "1" : "0";
                     }
-                    if (fullBin.length > 5000) break; 
+                    // Adaptive Threshold: JPEG often turns 0 into 20 and 255 into 230
+                    fullBin += (sum / (CLUSTER * CLUSTER) > 120) ? "1" : "0";
                 }
 
-                const start = fullBin.indexOf(SYNC);
+                const start = fullBin.indexOf(SYNC_BIT);
                 if (start === -1) {
-                    document.getElementById('res').innerText = "ERROR: Signal Lost in Noise.";
+                    document.getElementById('res').innerText = "ERROR: Anchor Lost.";
                     return;
                 }
 
-                let clean = fullBin.substring(start + SYNC.length);
+                let clean = fullBin.substring(start + SYNC_BIT.length);
                 let out = "";
                 for (let i = 0; i < clean.length; i += 8) {
-                    let char = String.fromCharCode(parseInt(clean.substring(i, i + 8), 2));
+                    let byte = clean.substring(i, i + 8);
+                    if (byte.length < 8) break;
+                    let char = String.fromCharCode(parseInt(byte, 2));
                     out += char;
                     if (out.endsWith("##")) break;
                 }
                 document.getElementById('res').innerText = out.replace("##", "");
+                status.innerText = "DECODE COMPLETE";
             }
         };
         img.src = e.target.result;
