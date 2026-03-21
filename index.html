@@ -2,123 +2,132 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Ironclad Synth v10</title>
+    <title>Ironclad v11 - Loop & Block</title>
     <style>
-        body { font-family: sans-serif; background: #000; color: #00ff00; text-align: center; padding: 20px; }
-        .container { border: 2px solid #00ff00; padding: 20px; max-width: 600px; margin: auto; background: #111; }
-        textarea { width: 90%; height: 60px; margin: 10px 0; background: #000; color: #fff; border: 1px solid #333; }
-        button { background: #00ff00; color: #000; border: none; padding: 12px 20px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        #log { font-family: monospace; font-size: 12px; color: #888; margin-top: 15px; }
-        .res { color: white; background: #222; padding: 10px; margin-top: 10px; border: 1px dashed #00ff00; }
+        body { font-family: 'Courier New', monospace; background: #000; color: #00ff41; padding: 20px; text-align: center; }
+        .box { border: 2px solid #00ff41; padding: 30px; max-width: 650px; margin: auto; background: #0a0a0a; box-shadow: 0 0 20px #00ff41; }
+        textarea { width: 95%; height: 80px; background: #111; color: #fff; border: 1px solid #333; padding: 10px; margin: 10px 0; }
+        button { background: #00ff41; color: #000; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; margin: 10px; border-radius: 5px; }
+        .res-area { background: #111; color: #00ff41; padding: 15px; border: 1px solid #00ff41; min-height: 40px; word-break: break-all; margin-top:10px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>IRONCLAD PIXEL SYNTH v10</h2>
-    
-    <div>
-        <input type="file" id="fileIn" accept="image/*"><br>
-        <textarea id="textIn" placeholder="Enter secret message..."></textarea><br>
-        <button onclick="run(true)">ENCODE & DOWNLOAD</button>
+<div class="box">
+    <h2>IRONCLAD v11 // LOOP & BLOCK</h2>
+    <p style="font-size: 0.8em; color: #888;">// TRIPLE REDUNDANCY MODE ACTIVE //</p>
+
+    <div style="border-bottom: 1px solid #222; padding-bottom: 20px;">
+        <input type="file" id="fIn" accept="image/*"><br>
+        <textarea id="tIn" placeholder="Type secret message..."></textarea><br>
+        <button onclick="process(true)">ENCODE (STRONG)</button>
     </div>
 
-    <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
-
-    <div>
-        <input type="file" id="fileDec" accept="image/*"><br>
-        <button onclick="run(false)">DECODE IMAGE</button>
-        <div class="res" id="result">Waiting...</div>
+    <div style="margin-top: 20px;">
+        <input type="file" id="fDec" accept="image/*"><br>
+        <button onclick="process(false)">DECODE (EXTRACT)</button>
+        <div class="res-area" id="res">Waiting...</div>
     </div>
-    <div id="log"></div>
 </div>
 
-<canvas id="canvas" style="display:none;"></canvas>
+<canvas id="c" style="display:none;"></canvas>
 
 <script>
-const CLUSTER = 2; // 2x2 pixels per bit for stability
-const START_X = 10; // Margin to avoid edge-cropping
+const B_SIZE = 8; // 8x8 blocks (survives blur)
+const SHIFT = 50; // Heavy brightness shift
 
-function run(isEncode) {
-    const input = isEncode ? document.getElementById('fileIn') : document.getElementById('fileDec');
+function process(isEncode) {
+    const input = isEncode ? document.getElementById('fIn') : document.getElementById('fDec');
     if (!input.files[0]) return alert("Select an image!");
 
     const reader = new FileReader();
     reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
-            const cvs = document.getElementById('canvas');
-            const ctx = cvs.getContext('2d');
-            cvs.width = img.width;
-            cvs.height = img.height;
+            const c = document.getElementById('c');
+            const ctx = c.getContext('2d');
+            c.width = img.width;
+            c.height = img.height;
             ctx.drawImage(img, 0, 0);
 
-            const imgData = ctx.getImageData(0, 0, cvs.width, cvs.height);
+            const imgData = ctx.getImageData(0, 0, c.width, c.height);
             const data = imgData.data;
 
             if (isEncode) {
-                const marker = "10101010"; // Simple start sync
-                let secret = document.getElementById('textIn').value + "##";
+                const marker = "11001100"; 
+                let msg = document.getElementById('tIn').value + "##";
                 let bin = marker;
-                for (let i = 0; i < secret.length; i++) {
-                    bin += secret.charCodeAt(i).toString(2).padStart(8, '0');
+                for (let i = 0; i < msg.length; i++) {
+                    bin += msg.charCodeAt(i).toString(2).padStart(8, '0');
                 }
 
-                for (let i = 0; i < bin.length; i++) {
-                    let bit = bin[i] === "1";
-                    // Calculate a linear position (moving across rows)
-                    let xBase = START_X + (i * CLUSTER);
-                    let yBase = 2; // Hide it in the 2nd row of pixels
+                // LOOP: We write the message 3 times in different vertical zones
+                const zones = [0.2, 0.5, 0.8]; // 20%, 50%, 80% down the image
+                
+                zones.forEach(zoneY => {
+                    let startY = Math.floor(c.height * zoneY);
+                    for (let i = 0; i < bin.length; i++) {
+                        let bit = bin[i] === "1";
+                        let xBase = (i * B_SIZE) % (c.width - B_SIZE);
+                        let yBase = startY + Math.floor((i * B_SIZE) / c.width) * B_SIZE;
 
-                    if (xBase + CLUSTER >= cvs.width) {
-                        yBase += CLUSTER; // Move to next row if too wide
-                        xBase = START_X;
+                        if (yBase + B_SIZE >= c.height) break;
+
+                        for (let y = 0; y < B_SIZE; y++) {
+                            for (let x = 0; x < B_SIZE; x++) {
+                                let idx = ((yBase + y) * c.width + (xBase + x)) * 4;
+                                // Shift Red and Blue channels for high visibility to the decoder
+                                data[idx] = bit ? Math.min(255, data[idx] + SHIFT) : Math.max(0, data[idx] - SHIFT);
+                                data[idx+2] = bit ? Math.min(255, data[idx+2] + SHIFT) : Math.max(0, data[idx+2] - SHIFT);
+                            }
+                        }
+                    }
+                });
+
+                ctx.putImageData(imgData, 0, 0);
+                const link = document.createElement('a');
+                link.download = 'ironclad_v11.png';
+                link.href = c.toDataURL("image/png");
+                link.click();
+            } else {
+                let bestResult = "ERROR: No marker found.";
+                const zones = [0.2, 0.5, 0.8];
+
+                for (let zoneY of zones) {
+                    let fullBin = "";
+                    let startY = Math.floor(c.height * zoneY);
+                    
+                    for (let i = 0; i < 2000; i++) { // Scan up to 2000 bits per zone
+                        let xBase = (i * B_SIZE) % (c.width - B_SIZE);
+                        let yBase = startY + Math.floor((i * B_SIZE) / c.width) * B_SIZE;
+                        if (yBase + B_SIZE >= c.height) break;
+
+                        let avgR = 0;
+                        for (let y = 0; y < B_SIZE; y++) {
+                            for (let x = 0; x < B_SIZE; x++) {
+                                avgR += data[((yBase + y) * c.width + (xBase + x)) * 4];
+                            }
+                        }
+                        fullBin += (avgR / (B_SIZE * B_SIZE) > 127) ? "1" : "0";
                     }
 
-                    for (let dy = 0; dy < CLUSTER; dy++) {
-                        for (let dx = 0; dx < CLUSTER; dx++) {
-                            let idx = ((yBase + dy) * cvs.width + (xBase + dx)) * 4;
-                            // Force RGB to absolute Max or Min
-                            let val = bit ? 255 : 0;
-                            data[idx] = val;     // R
-                            data[idx+1] = val;   // G
-                            data[idx+2] = val;   // B
+                    const marker = "11001100";
+                    const start = fullBin.indexOf(marker);
+                    if (start !== -1) {
+                        let cleanBin = fullBin.substring(start + marker.length);
+                        let final = "";
+                        for (let i = 0; i < cleanBin.length; i += 8) {
+                            let char = String.fromCharCode(parseInt(cleanBin.substring(i, i + 8), 2));
+                            final += char;
+                            if (final.endsWith("##")) break;
+                        }
+                        if (final.includes("##")) {
+                            bestResult = final.replace("##", "");
+                            break; // Found it!
                         }
                     }
                 }
-                ctx.putImageData(imgData, 0, 0);
-                const link = document.createElement('a');
-                link.download = 'ironclad_secret.png';
-                link.href = cvs.toDataURL("image/png");
-                link.click();
-            } else {
-                let fullBin = "";
-                // Scan the top rows for bits
-                for (let y = 2; y < 20; y += CLUSTER) {
-                    for (let x = START_X; x < cvs.width - CLUSTER; x += CLUSTER) {
-                        let rIdx = (y * cvs.width + x) * 4;
-                        // Use the Red channel average of the cluster
-                        fullBin += (data[rIdx] > 127) ? "1" : "0";
-                    }
-                }
-
-                const marker = "10101010";
-                const start = fullBin.indexOf(marker);
-                if (start === -1) {
-                    document.getElementById('result').innerText = "ERROR: Marker Not Found.";
-                    return;
-                }
-
-                let cleanBin = fullBin.substring(start + marker.length);
-                let msg = "";
-                for (let i = 0; i < cleanBin.length; i += 8) {
-                    let charCode = parseInt(cleanBin.substring(i, i + 8), 2);
-                    if (isNaN(charCode)) break;
-                    let char = String.fromCharCode(charCode);
-                    msg += char;
-                    if (msg.endsWith("##")) break;
-                }
-                document.getElementById('result').innerText = msg.replace("##", "");
+                document.getElementById('res').innerText = bestResult;
             }
         };
         img.src = e.target.result;
