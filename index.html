@@ -2,45 +2,50 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Rugged Pixel Synth v6</title>
+    <title>Rugged Synth v7 - Final Fix</title>
     <style>
-        body { font-family: monospace; background: #000; color: #0f0; text-align: center; padding: 20px; }
-        .box { border: 2px solid #0f0; padding: 20px; max-width: 600px; margin: auto; }
-        textarea { width: 90%; height: 60px; background: #111; color: #0f0; border: 1px solid #0f0; margin: 10px 0; }
-        button { background: #0f0; color: #000; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; margin: 5px; }
-        #log { color: #888; font-size: 0.8em; margin-top: 10px; }
+        body { font-family: 'Courier New', monospace; background: #121212; color: #00ff41; padding: 20px; text-align: center; }
+        .box { border: 2px solid #00ff41; padding: 30px; max-width: 650px; margin: auto; background: #000; box-shadow: 0 0 20px #00ff41; border-radius: 10px; }
+        textarea { width: 95%; height: 80px; background: #1a1a1a; color: #fff; border: 1px solid #333; padding: 10px; margin: 10px 0; font-size: 14px; }
+        button { background: #00ff41; color: #000; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; margin: 10px; border-radius: 5px; }
+        button:hover { background: #fff; }
+        #status { color: #ff00ea; font-weight: bold; margin: 10px; }
+        .result-area { background: #222; color: #fff; padding: 15px; border: 1px dashed #00ff41; min-height: 50px; word-break: break-all; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2>RUGGED SYNTH // ANTI-COMPRESSION</h2>
-    
-    <div>
+    <h2>RUGGED PIXEL SYNTH v7</h2>
+    <div id="status">READY</div>
+
+    <div style="border-bottom: 1px solid #333; padding-bottom: 20px;">
+        <h3>ENCODE (Create Secret)</h3>
         <input type="file" id="fIn" accept="image/*"><br>
-        <textarea id="tIn" placeholder="Enter message..."></textarea><br>
-        <button onclick="run(true)">ENCODE & DOWNLOAD</button>
+        <textarea id="tIn" placeholder="Type your secret message..."></textarea><br>
+        <button onclick="process(true)">ENCODE & DOWNLOAD PNG</button>
     </div>
 
-    <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
-
-    <div>
+    <div style="margin-top: 20px;">
+        <h3>DECODE (Read Secret)</h3>
         <input type="file" id="fDec" accept="image/*"><br>
-        <button onclick="run(false)">DECODE IMAGE</button>
-        <div id="res" style="color:#fff; background:#222; margin-top:10px; padding:10px;">...</div>
+        <button onclick="process(false)">DECODE IMAGE</button>
+        <div class="result-area" id="res">Message will appear here...</div>
     </div>
-    <div id="log"></div>
 </div>
 
 <canvas id="c" style="display:none;"></canvas>
 
 <script>
-const B_SIZE = 10; // 10x10 pixel blocks
-const SHIFT = 20;  // High visibility shift to survive JPEG/Insta
+const STEP = 8; // How many pixels to skip (survives compression)
+const THRESHOLD = 128;
 
-function run(encode) {
-    const input = encode ? document.getElementById('fIn') : document.getElementById('fDec');
-    if (!input.files[0]) return alert("Select Image!");
+function process(isEncode) {
+    const input = isEncode ? document.getElementById('fIn') : document.getElementById('fDec');
+    const status = document.getElementById('status');
+    
+    if (!input.files[0]) return alert("Select an image!");
+    status.innerText = "PROCESSING...";
 
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -54,66 +59,48 @@ function run(encode) {
 
             const imgData = ctx.getImageData(0, 0, c.width, c.height);
             const data = imgData.data;
-            const cols = Math.floor(c.width / B_SIZE);
 
-            if (encode) {
-                const msg = document.getElementById('tIn').value + "###";
+            if (isEncode) {
+                const msg = document.getElementById('tIn').value + "@@"; // Simpler terminator
                 let bitIdx = 0;
 
                 for (let i = 0; i < msg.length; i++) {
-                    let code = msg.charCodeAt(i);
+                    let charCode = msg.charCodeAt(i);
                     for (let b = 7; b >= 0; b--) {
-                        let bit = (code >> b) & 1;
-                        let bCol = bitIdx % cols;
-                        let bRow = Math.floor(bitIdx / cols);
+                        let bit = (charCode >> b) & 1;
+                        let pos = bitIdx * STEP * 4;
+                        
+                        if (pos + 3 >= data.length) break;
 
-                        // Apply to a 10x10 block
-                        for (let y = 0; y < B_SIZE; y++) {
-                            for (let x = 0; x < B_SIZE; x++) {
-                                let pIdx = ((bRow * B_SIZE + y) * c.width + (bCol * B_SIZE + x)) * 4;
-                                // Shift brightness up for 1, down for 0
-                                data[pIdx] = bit === 1 ? Math.min(255, data[pIdx] + SHIFT) : Math.max(0, data[pIdx] - SHIFT);
-                            }
-                        }
+                        // Force the pixel value to be clearly High or Low
+                        // This survives the "averaging" of Instagram's compression
+                        data[pos] = bit === 1 ? 255 : 0; 
                         bitIdx++;
                     }
                 }
                 ctx.putImageData(imgData, 0, 0);
                 const link = document.createElement('a');
-                link.download = 'rugged_insta.png';
+                link.download = 'rugged_v7.png';
                 link.href = c.toDataURL("image/png");
                 link.click();
+                status.innerText = "ENCODED SUCCESSFULLY";
             } else {
                 let bin = "";
                 let out = "";
-                let bitIdx = 0;
-                while (true) {
-                    let bCol = bitIdx % cols;
-                    let bRow = Math.floor(bitIdx / cols);
-                    if ((bRow + 1) * B_SIZE > c.height) break;
-
-                    let total = 0;
-                    for (let y = 0; y < B_SIZE; y++) {
-                        for (let x = 0; x < B_SIZE; x++) {
-                            let pIdx = ((bRow * B_SIZE + y) * c.width + (bCol * B_SIZE + x)) * 4;
-                            total += data[pIdx];
-                        }
-                    }
+                for (let i = 0; i < data.length; i += (STEP * 4)) {
+                    // Check if the Red channel is closer to 255 or 0
+                    bin += (data[i] > THRESHOLD) ? "1" : "0";
                     
-                    // Logic: Average brightness of the block
-                    let avg = total / (B_SIZE * B_SIZE);
-                    bin += (avg > 127) ? "1" : "0"; // This is a simplified threshold
-
                     if (bin.length === 8) {
                         let char = String.fromCharCode(parseInt(bin, 2));
                         out += char;
                         bin = "";
-                        if (out.endsWith("###")) break;
+                        if (out.endsWith("@@")) break;
                     }
-                    bitIdx++;
-                    if (out.length > 500) break; // Safety stop
+                    if (out.length > 1000) break;
                 }
-                document.getElementById('result').innerText = out.replace("###", "");
+                document.getElementById('res').innerText = out.replace("@@", "");
+                status.innerText = "DECODE COMPLETE";
             }
         };
         img.src = e.target.result;
