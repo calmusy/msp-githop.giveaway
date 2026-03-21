@@ -2,101 +2,100 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Universal Pixel Synth v4</title>
+    <title>Pixel Synth v5 - Stable</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0e0e0e; color: #00ffcc; text-align: center; padding: 40px; }
-        .wrapper { border: 2px solid #00ffcc; border-radius: 20px; padding: 30px; max-width: 600px; margin: auto; background: #161616; box-shadow: 0 0 30px rgba(0, 255, 204, 0.2); }
-        textarea { width: 90%; height: 100px; background: #222; color: #fff; border: 1px solid #444; border-radius: 10px; padding: 10px; margin: 15px 0; }
-        button { background: #00ffcc; color: #000; border: none; padding: 15px 30px; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { transform: scale(1.05); background: #fff; }
-        .output-box { margin-top: 20px; padding: 15px; background: #000; border-radius: 10px; border: 1px dashed #00ffcc; min-height: 40px; word-wrap: break-word; }
+        body { font-family: sans-serif; background: #1a1a1a; color: #00ff41; text-align: center; padding: 20px; }
+        .box { border: 2px solid #00ff41; padding: 20px; max-width: 600px; margin: auto; background: #000; }
+        textarea { width: 90%; height: 60px; margin: 10px 0; background: #111; color: #fff; border: 1px solid #333; }
+        button { background: #00ff41; color: #000; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
+        #output { color: white; background: #222; padding: 10px; display: block; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<div class="wrapper">
-    <h2>PIXEL SYNTH v4.0</h2>
-    <p>Enhanced Stability Mode</p>
-
+<div class="box">
+    <h2>STABLE PIXEL ENCODER</h2>
+    
     <div>
-        <input type="file" id="imgIn" accept="image/*">
-        <textarea id="secretMsg" placeholder="Type your message..."></textarea>
-        <button onclick="run(true)">EMBED MESSAGE</button>
+        <h3>1. Create Image</h3>
+        <input type="file" id="fileIn" accept="image/*"><br>
+        <textarea id="textIn" placeholder="Enter secret message..."></textarea><br>
+        <button onclick="handle(true)">DOWNLOAD ENCODED PNG</button>
     </div>
 
-    <hr style="border: 0; border-top: 1px solid #333; margin: 30px 0;">
+    <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
 
     <div>
-        <input type="file" id="imgDecode" accept="image/*">
-        <button onclick="run(false)">DECODE IMAGE</button>
-        <div class="output-box" id="result">Waiting for input...</div>
+        <h3>2. Read Image</h3>
+        <input type="file" id="fileDecode" accept="image/*"><br>
+        <button onclick="handle(false)">EXTRACT MESSAGE</button>
+        <div id="output">Result will appear here...</div>
     </div>
 </div>
 
-<canvas id="c" style="display:none;"></canvas>
+<canvas id="canvas" style="display:none;"></canvas>
 
 <script>
-    const OFFSET = 10; // The "Strength" of the shift
+function handle(isEncode) {
+    const input = isEncode ? document.getElementById('fileIn') : document.getElementById('fileDecode');
+    if (!input.files[0]) return alert("Select an image!");
 
-    function run(encode) {
-        const file = encode ? document.getElementById('imgIn').files[0] : document.getElementById('imgDecode').files[0];
-        if (!file) return alert("Select an image first!");
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const cvs = document.getElementById('canvas');
+            const ctx = cvs.getContext('2d');
+            cvs.width = img.width;
+            cvs.height = img.height;
+            ctx.drawImage(img, 0, 0);
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                const c = document.getElementById('c');
-                const ctx = c.getContext('2d');
-                c.width = img.width;
-                c.height = img.height;
-                ctx.drawImage(img, 0, 0);
+            const imgData = ctx.getImageData(0, 0, cvs.width, cvs.height);
+            const data = imgData.data;
 
-                const imgData = ctx.getImageData(0, 0, c.width, c.height);
-                const data = imgData.data;
-
-                if (encode) {
-                    const msg = document.getElementById('secretMsg').value + "###";
-                    let bitIndex = 0;
-                    // We use a grid: every 4th pixel to avoid "clumping"
-                    for (let i = 0; i < data.length && bitIndex < msg.length * 8; i += 16) {
-                        const charPos = Math.floor(bitIndex / 8);
-                        const bitPos = 7 - (bitIndex % 8);
-                        const bit = (msg.charCodeAt(charPos) >> bitPos) & 1;
-
-                        // Shift Red channel based on bit
-                        if (bit === 1) {
-                            data[i] = data[i] > 128 ? data[i] - OFFSET : data[i] + OFFSET;
-                        }
-                        bitIndex++;
-                    }
-                    ctx.putImageData(imgData, 0, 0);
-                    const link = document.createElement('a');
-                    link.download = 'synth_export.png';
-                    link.href = c.toDataURL("image/png");
-                    link.click();
-                } else {
-                    let binary = "";
-                    let finalMsg = "";
-                    for (let i = 0; i < data.length; i += 16) {
-                        // Logic: check if the pixel is "off-balance"
-                        // This is a simplified check for the offset we added
-                        binary += (data[i] % 2 === 1) ? "1" : "0"; 
+            if (isEncode) {
+                const secret = document.getElementById('textIn').value + "###"; // Terminator
+                let bitIdx = 0;
+                
+                for (let i = 0; i < secret.length; i++) {
+                    let charCode = secret.charCodeAt(i);
+                    for (let b = 7; b >= 0; b--) {
+                        let bit = (charCode >> b) & 1;
+                        let pixelPos = bitIdx * 4; // Using Red channel of every pixel
                         
-                        if (binary.length === 8) {
-                            let char = String.fromCharCode(parseInt(binary, 2));
-                            finalMsg += char;
-                            binary = "";
-                            if (finalMsg.endsWith("###")) break;
+                        // If bit is 1, make value ODD. If 0, make value EVEN.
+                        if (bit === 1) {
+                            if (data[pixelPos] % 2 === 0) data[pixelPos]++;
+                        } else {
+                            if (data[pixelPos] % 2 !== 0) data[pixelPos]--;
                         }
+                        bitIdx++;
                     }
-                    document.getElementById('result').innerText = finalMsg.replace("###", "");
                 }
-            };
-            img.src = e.target.result;
+                ctx.putImageData(imgData, 0, 0);
+                const link = document.createElement('a');
+                link.download = 'encoded.png';
+                link.href = cvs.toDataURL("image/png");
+                link.click();
+            } else {
+                let binary = "";
+                let msg = "";
+                for (let i = 0; i < data.length; i += 4) {
+                    binary += (data[i] % 2 !== 0) ? "1" : "0";
+                    if (binary.length === 8) {
+                        let char = String.fromCharCode(parseInt(binary, 2));
+                        msg += char;
+                        binary = "";
+                        if (msg.endsWith("###")) break;
+                    }
+                }
+                document.getElementById('output').innerText = msg.replace("###", "");
+            }
         };
-        reader.readAsDataURL(file);
-    }
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+}
 </script>
 </body>
 </html>
